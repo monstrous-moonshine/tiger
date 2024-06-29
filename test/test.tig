@@ -1,0 +1,8 @@
+let type a = b
+    type b = {a: TypeA, b: TypeB}
+    var a : int := 340
+  in
+    a.field := new record { a=1, b=2, c=3};
+    b.arr := new arr [1 + 2] of func(3, 6);
+    my_fun(1, 2, 3)
+end
