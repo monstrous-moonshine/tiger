@@ -49,6 +49,8 @@ exp:	op_exp
 	|
 	assign_exp
 	|
+	IF op_exp THEN exp END		{ $$ = new IfExprAST($2, $4, nullptr); }
+	|
 	WHILE op_exp DO exp END		{ $$ = new WhileExprAST($2, $4); }
 	|
 	FOR ID ASSIGN op_exp TO op_exp DO exp END	{ $$ = new ForExprAST($2, $4, $6, $8); }
@@ -57,10 +59,6 @@ exp:	op_exp
 	;
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
-	|
-	lvalue ASSIGN record_exp	{ $$ = new AssignExprAST($1, $3); }
-	|
-	lvalue ASSIGN array_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
 record_exp:
 	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($2, $4); }
@@ -115,8 +113,6 @@ unary:	primary
 primary:
 	IF op_exp THEN exp ELSE exp END { $$ = new IfExprAST($2, $4, $6); }
 	|
-	IF op_exp THEN exp END		{ $$ = new IfExprAST($2, $4, nullptr); }
-	|
 	ID '(' argseq ')'		{ $$ = new CallExprAST($1, $3); }
 	|
 	'(' expseq ')'			{ $$ = expseq_to_expr($2); }
@@ -124,6 +120,10 @@ primary:
 	LET decs IN expseq END 		{ $$ = new LetExprAST($2, expseq_to_expr($4)); }
 	|
 	lvalue
+	|
+	record_exp
+	|
+	array_exp
 	|
 	INT				{ $$ = new IntExprAST($1); }
 	|
