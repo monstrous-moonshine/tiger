@@ -451,7 +451,8 @@ public:
       sep = ", ";
     }
     std::printf(")");
-    if (result) std::printf(" : %s", result.str());
+    if (result)
+      std::printf(" : %s", result.str());
     std::printf(" =\n");
     body->print(indent + 2);
   }
@@ -462,9 +463,12 @@ class FuncDeclAST : public DeclAST {
 
 public:
   FuncDeclAST() = default;
-  void AddFunc(FundecTy *decl) { decls.push_back(std::move(*decl)); delete decl; }
+  void AddFunc(FundecTy *decl) {
+    decls.push_back(std::move(*decl));
+    delete decl;
+  }
   void print(int indent) override {
-    for (auto& decl: decls) {
+    for (auto &decl : decls) {
       decl.print(indent);
       std::printf("\n");
     }
