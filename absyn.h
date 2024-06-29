@@ -304,7 +304,7 @@ public:
 class ForExprAST : public ExprAST {
   Symbol var;
   uptr<ExprAST> lo, hi, body;
-  bool escape{};
+  bool escape{true};
 
 public:
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
