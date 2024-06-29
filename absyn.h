@@ -434,14 +434,15 @@ public:
 };
 
 class FundecTy {
-  Symbol name, result;
+  Symbol name;
   std::vector<Tyfield> params;
+  Symbol result;
   uptr<ExprAST> body;
 
 public:
-  FundecTy(const char *name, const char *result, TyfieldSeq *params,
+  FundecTy(const char *name, TyfieldSeq *params, const char *result,
            ExprAST *body)
-      : name(name), result(result), params(std::move(params->seq)), body(body) {
+      : name(name), params(std::move(params->seq)), result(result), body(body) {
     delete params;
   }
   void print(int indent) {

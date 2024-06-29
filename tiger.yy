@@ -209,12 +209,12 @@ fundecs:
 	;
 fundec: FUNC ID '(' tyfieldseq ')' '=' op_exp
 	{
-	    $$ = new FundecTy($2, nullptr, $4, $7);
+	    $$ = new FundecTy($2, $4, nullptr, $7);
 	}
 	|
 	FUNC ID '(' tyfieldseq ')' ':' ID '=' op_exp
 	{
-	    $$ = new FundecTy($2, $7, $4, $9);
+	    $$ = new FundecTy($2, $4, $7, $9);
 	}
 	;
 
