@@ -353,9 +353,10 @@ public:
   }
 };
 
-class Ty : public Object {
+class Ty {
 public:
   virtual ~Ty() = default;
+  virtual void print(int) = 0;
 };
 
 class NameTy : public Ty {
