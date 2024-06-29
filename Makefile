@@ -20,8 +20,12 @@ tiger.tab.cc: tiger.yy
 
 $(OUTPUT_DIR)/main.o $(OUTPUT_DIR)/lex.yy.o: tiger.tab.hh
 
-.PHONY: clean
+format:
+	clang-format -i absyn.h symbol.* token.h
+
 clean:
 	$(RM) $(OUTPUT_DIR)/* lex.yy.cc tiger.tab.{cc,hh} tiger
+
+.PHONY: clean format
 
 -include $(DEPS)
