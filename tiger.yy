@@ -60,12 +60,6 @@ exp:	op_exp
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
-record_exp:
-	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($2, $4); }
-	;
-array_exp:
-	NEW ID '[' op_exp ']' OF op_exp { $$ = new ArrayExprAST($2, $4, $7); }
-	;
 lvalue: ID				{ $$ = new SimpleVarExprAST($1); }
 	|
 	lvalue '.' ID			{ $$ = new FieldVarExprAST($1, $3); }
@@ -130,6 +124,12 @@ primary:
 	STR				{ $$ = new StringExprAST($1); }
 	|
 	NIL				{ $$ = new NilExprAST(); }
+	;
+record_exp:
+	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($1, $3); }
+	;
+array_exp:
+	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ArrayExprAST($1, $3, $6); }
 	;
 expseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
