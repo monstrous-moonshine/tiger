@@ -109,7 +109,7 @@ class SimpleVarExprAST : public VarExprAST {
 
 public:
   SimpleVarExprAST(const char *id) : id(id) {}
-  void print(int) override { std::printf("%s", id.str()); }
+  void print(int) override { std::printf("%s", id.name()); }
 };
 
 class FieldVarExprAST : public VarExprAST {
@@ -121,7 +121,7 @@ public:
       : var(static_cast<VarExprAST *>(var)), field(field) {}
   void print(int indent) override {
     var->print(indent);
-    std::printf(".%s", field.str());
+    std::printf(".%s", field.name());
   }
 };
 
@@ -158,7 +158,7 @@ class StringExprAST : public ExprAST {
 
 public:
   StringExprAST(const char *val) : val(val) {}
-  void print(int) override { std::printf("%s", val.str()); }
+  void print(int) override { std::printf("%s", val.name()); }
 };
 
 class CallExprAST : public ExprAST {
@@ -171,7 +171,7 @@ public:
     delete args;
   }
   void print(int indent) override {
-    std::printf("%s(", fn.str());
+    std::printf("%s(", fn.name());
     const char *sep = "";
     for (const auto &arg : args) {
       std::printf("%s", sep);
@@ -212,10 +212,10 @@ public:
     delete args;
   }
   void print(int indent) override {
-    std::printf("%s {", type_id.str());
+    std::printf("%s {", type_id.name());
     const char *sep = "";
     for (const auto &field : args) {
-      std::printf("%s%s=", sep, field.first.str());
+      std::printf("%s%s=", sep, field.first.name());
       field.second->print(indent);
       sep = ", ";
     }
@@ -231,7 +231,7 @@ public:
   ArrayExprAST(const char *type_id, ExprAST *size, ExprAST *init)
       : type_id(type_id), size(size), init(init) {}
   void print(int indent) override {
-    std::printf("%s [", type_id.str());
+    std::printf("%s [", type_id.name());
     size->print(indent);
     std::printf("]");
     std::printf(" of ");
@@ -310,7 +310,7 @@ public:
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
       : var(var), lo(lo), hi(hi), body(body) {}
   void print(int indent) override {
-    std::printf("for %s := ", var.str());
+    std::printf("for %s := ", var.name());
     lo->print(indent);
     std::printf(" to ");
     hi->print(indent);
@@ -364,7 +364,7 @@ class NameTy : public Ty {
 
 public:
   NameTy(const char *id) : type_id(id) {}
-  void print(int) override { std::printf("%s", type_id.str()); }
+  void print(int) override { std::printf("%s", type_id.name()); }
 };
 
 class RecordTy : public Ty {
@@ -378,7 +378,7 @@ public:
     std::printf("{");
     const char *sep = "";
     for (const auto &field : fields) {
-      std::printf("%s%s: %s", sep, field.name.str(), field.type_id.str());
+      std::printf("%s%s: %s", sep, field.name.name(), field.type_id.name());
       sep = ", ";
     }
     std::printf("}");
@@ -390,7 +390,7 @@ class ArrayTy : public Ty {
 
 public:
   ArrayTy(const char *id) : type_id(id) {}
-  void print(int) override { std::printf("array of %s", type_id.str()); }
+  void print(int) override { std::printf("array of %s", type_id.name()); }
 };
 
 class TypeDeclAST : public DeclAST {
@@ -407,7 +407,7 @@ public:
     for (auto &type : types) {
       if (needs_indent)
         do_indent(indent);
-      std::printf("type %s = ", type.first.str());
+      std::printf("type %s = ", type.first.name());
       type.second->print(indent);
       std::printf("\n");
       needs_indent = true;
@@ -424,9 +424,9 @@ public:
   VarDeclAST(const char *name, const char *type_id, ExprAST *init)
       : name(name), type_id(type_id), init(init) {}
   void print(int indent) override {
-    std::printf("var %s", name.str());
+    std::printf("var %s", name.name());
     if (type_id)
-      std::printf(": %s", type_id.str());
+      std::printf(": %s", type_id.name());
     std::printf(" := ");
     init->print(indent);
     std::printf("\n");
@@ -446,15 +446,15 @@ public:
     delete params;
   }
   void print(int indent) {
-    std::printf("function %s(", name.str());
+    std::printf("function %s(", name.name());
     const char *sep = "";
     for (const auto &param : params) {
-      std::printf("%s%s: %s", sep, param.name.str(), param.type_id.str());
+      std::printf("%s%s: %s", sep, param.name.name(), param.type_id.name());
       sep = ", ";
     }
     std::printf(")");
     if (result)
-      std::printf(" : %s", result.str());
+      std::printf(" : %s", result.name());
     std::printf(" =\n");
     body->print(indent + 2);
   }

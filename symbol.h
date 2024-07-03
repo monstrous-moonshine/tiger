@@ -9,7 +9,7 @@ public:
   explicit operator bool() const { return val != nullptr; }
 
   // get the underlying string; invalid after calling FreeAll
-  const char *str() const { return val; }
+  const char *name() const { return val; }
 
   // release all strings from the registry
   static void FreeAll();
