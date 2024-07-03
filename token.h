@@ -2,7 +2,10 @@
 #define TOKEN_H
 #include <memory>
 #include <utility>
+
 class Symbol;
+
+namespace absyn {
 
 class ExprAST;
 // sequence of expressions in (..; ..; ..) and let expression
@@ -29,23 +32,25 @@ class Tyfield;
 // one function declaration in a mutually recursive set
 class FundecTy;
 
+}
+
 struct Token {
   union {
     int num;
     char *str;
-    ExprAST *exp;
-    ExprSeq *exps;
-    FieldSeq *fields;
-    NamedExpr *field;
-    DeclAST *decl;
-    TypeDeclAST *tydecs;
-    FuncDeclAST *fundecs;
-    DeclSeq *decls;
-    Ty *ty;
-    NamedType *tydec;
-    TyfieldSeq *tyfields;
-    Tyfield *tyfield;
-    FundecTy *fundec;
+    absyn::ExprAST *exp;
+    absyn::ExprSeq *exps;
+    absyn::FieldSeq *fields;
+    absyn::NamedExpr *field;
+    absyn::DeclAST *decl;
+    absyn::TypeDeclAST *tydecs;
+    absyn::FuncDeclAST *fundecs;
+    absyn::DeclSeq *decls;
+    absyn::Ty *ty;
+    absyn::NamedType *tydec;
+    absyn::TyfieldSeq *tyfields;
+    absyn::Tyfield *tyfield;
+    absyn::FundecTy *fundec;
   } as;
   int line;
 };

@@ -1,3 +1,5 @@
+#ifndef ABSYN_H
+#define ABSYN_H
 #include "symbol.h"
 #include <cstdio>
 #include <memory>
@@ -5,27 +7,35 @@
 
 template <typename T> using uptr = std::unique_ptr<T>;
 
+namespace absyn {
 class ExprAST;
-using NamedExpr = std::pair<Symbol, uptr<ExprAST>>;
-
+class DeclAST;
+class ExprSeq;
 class Ty;
+}
+
+namespace yy {
+absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
+}
+
+namespace absyn {
+
+using NamedExpr = std::pair<Symbol, uptr<ExprAST>>;
 using NamedType = std::pair<Symbol, uptr<Ty>>;
 
-class DeclAST;
-
-enum OpType {
-  OP_PLUS,
-  OP_MINUS,
-  OP_MUL,
-  OP_DIV,
-  OP_EQ,
-  OP_NEQ,
-  OP_LT,
-  OP_LE,
-  OP_GT,
-  OP_GE,
-  OP_AND,
-  OP_OR,
+enum class Op : int {
+  kPlus,
+  kMinus,
+  kMul,
+  kDiv,
+  kEq,
+  kNeq,
+  kLt,
+  kLe,
+  kGt,
+  kGe,
+  kAnd,
+  kOr,
 };
 
 struct Tyfield {
@@ -41,7 +51,7 @@ class ExprSeq {
   std::vector<uptr<ExprAST>> seq;
   friend class CallExprAST;
   friend class SeqExprAST;
-  friend ExprAST *expseq_to_expr(ExprSeq *);
+  friend ExprAST *yy::expseq_to_expr(ExprSeq *);
 
 public:
   ExprSeq() = default;
@@ -476,3 +486,5 @@ public:
     }
   }
 };
+} // namespace absyn
+#endif

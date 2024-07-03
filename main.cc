@@ -4,7 +4,7 @@
 // defined in lex.yy.cc
 int yylex_destroy();
 // defined in tiger.tab.cc
-extern uptr<ExprAST> parse_result;
+extern uptr<absyn::ExprAST> parse_result;
 
 int main() {
   yy::parser parser;

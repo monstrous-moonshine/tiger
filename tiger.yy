@@ -5,10 +5,14 @@
 
 // defined in lex.yy.cc
 int yylex(Token *yylval);
-// defined below
-ExprAST *expseq_to_expr(ExprSeq *);
+
+using namespace absyn;
 // result of the parse
 uptr<ExprAST> parse_result;
+
+namespace yy {
+ExprAST *expseq_to_expr(ExprSeq *);
+}
 %}
 
 %require "3.2"
@@ -219,6 +223,8 @@ fundec: FUNC ID '(' tyfieldseq ')' '=' op_exp
 	;
 
 %%
+namespace yy {
+
 ExprAST *expseq_to_expr(ExprSeq *exps) {
     switch (exps->seq.size()) {
     case 0:
@@ -234,8 +240,8 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
     }
 }
 
-namespace yy {
-    void parser::error(const std::string& msg) {
-	std::cerr << msg << "\n";
-    }
+void parser::error(const std::string& msg) {
+    std::cerr << msg << "\n";
 }
+
+} // namespace
