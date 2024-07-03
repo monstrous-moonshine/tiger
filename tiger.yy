@@ -126,10 +126,10 @@ primary:
 	NIL				{ $$ = new NilExprAST(); }
 	;
 record_exp:
-	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($1, $3); }
+	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($2, $4); }
 	;
 array_exp:
-	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ArrayExprAST($1, $3, $6); }
+	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ArrayExprAST($2, $4, $7); }
 	;
 expseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
