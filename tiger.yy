@@ -73,40 +73,40 @@ lvalue: ID				{ $$ = new SimpleVarExprAST($1); }
 op_exp:
 	logical_exp
 	|
-	op_exp '&' logical_exp		{ $$ = new OpExprAST($1, $3, OP_AND); }
+	op_exp '&' logical_exp		{ $$ = new OpExprAST($1, $3, Op::kAnd); }
 	|
-	op_exp '|' logical_exp		{ $$ = new OpExprAST($1, $3, OP_OR); }
+	op_exp '|' logical_exp		{ $$ = new OpExprAST($1, $3, Op::kOr); }
 	;
 logical_exp:
 	term
 	|
-	logical_exp '=' term		{ $$ = new OpExprAST($1, $3, OP_EQ); }
+	logical_exp '=' term		{ $$ = new OpExprAST($1, $3, Op::kEq); }
 	|
-	logical_exp NEQ term		{ $$ = new OpExprAST($1, $3, OP_NEQ); }
+	logical_exp NEQ term		{ $$ = new OpExprAST($1, $3, Op::kNeq); }
 	|
-	logical_exp '<' term		{ $$ = new OpExprAST($1, $3, OP_LT); }
+	logical_exp '<' term		{ $$ = new OpExprAST($1, $3, Op::kLt); }
 	|
-	logical_exp LE	term		{ $$ = new OpExprAST($1, $3, OP_LE); }
+	logical_exp LE	term		{ $$ = new OpExprAST($1, $3, Op::kLe); }
 	|
-	logical_exp '>' term		{ $$ = new OpExprAST($1, $3, OP_GT); }
+	logical_exp '>' term		{ $$ = new OpExprAST($1, $3, Op::kGt); }
 	|
-	logical_exp GE	term		{ $$ = new OpExprAST($1, $3, OP_GE); }
+	logical_exp GE	term		{ $$ = new OpExprAST($1, $3, Op::kGe); }
 	;
 term:	factor
 	|
-	term '+' factor			{ $$ = new OpExprAST($1, $3, OP_PLUS); }
+	term '+' factor			{ $$ = new OpExprAST($1, $3, Op::kPlus); }
 	|
-	term '-' factor			{ $$ = new OpExprAST($1, $3, OP_MINUS); }
+	term '-' factor			{ $$ = new OpExprAST($1, $3, Op::kMinus); }
 	;
 factor: unary
 	|
-	factor '*' unary		{ $$ = new OpExprAST($1, $3, OP_MUL); }
+	factor '*' unary		{ $$ = new OpExprAST($1, $3, Op::kMul); }
 	|
-	factor '/' unary		{ $$ = new OpExprAST($1, $3, OP_DIV); }
+	factor '/' unary		{ $$ = new OpExprAST($1, $3, Op::kDiv); }
 	;
 unary:	primary
 	|
-	'-' unary			{ $$ = new OpExprAST(new IntExprAST(0), $2, OP_MINUS); }
+	'-' unary			{ $$ = new OpExprAST(new IntExprAST(0), $2, Op::kMinus); }
 	;
 primary:
 	IF op_exp THEN exp ELSE exp END { $$ = new IfExprAST($2, $4, $6); }

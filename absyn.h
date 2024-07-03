@@ -194,10 +194,10 @@ public:
 
 class OpExprAST : public ExprAST {
   uptr<ExprAST> lhs, rhs;
-  OpType op;
+  Op op;
 
 public:
-  OpExprAST(ExprAST *lhs, ExprAST *rhs, OpType op)
+  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op)
       : lhs(lhs), rhs(rhs), op(op) {}
   void print(int indent) override {
     const char *op_str[] = {
@@ -206,7 +206,7 @@ public:
     std::printf("(");
     // this is a bit arbitrary
     lhs->print(indent + 2);
-    std::printf("%s", op_str[op]);
+    std::printf("%s", op_str[static_cast<int>(op)]);
     rhs->print(indent + 2);
     std::printf(")");
   }
