@@ -14,5 +14,5 @@ int main() {
   if (parse_result)
     parse_result->print(0);
   // since we've printed all the symbols, their strings can be freed
-  Symbol::FreeAll();
+  symbol::Symbol::FreeAll();
 }

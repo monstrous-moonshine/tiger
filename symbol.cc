@@ -29,6 +29,8 @@ public:
 std::unordered_set<const char *, Hash, Pred> registry;
 } // namespace
 
+namespace symbol {
+
 // Strings passed to this constructor are allocated by the lexer. If it's new,
 // it's stashed away in the registry. Symbol itself doesn't own the string --
 // the registry does. If the string (the same sequence of characters, not the
@@ -57,3 +59,5 @@ void Symbol::FreeAll() {
   // for equality comparison
   registry.clear();
 }
+
+} // namespace symbol

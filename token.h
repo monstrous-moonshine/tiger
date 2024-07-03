@@ -3,7 +3,9 @@
 #include <memory>
 #include <utility>
 
+namespace symbol {
 class Symbol;
+}
 
 namespace absyn {
 
@@ -13,7 +15,7 @@ class ExprSeq;
 // all "name = exp" pairs in a record expression
 class FieldSeq;
 // one "name = exp" pair in a record expression
-using NamedExpr = std::pair<Symbol, std::unique_ptr<ExprAST>>;
+using NamedExpr = std::pair<symbol::Symbol, std::unique_ptr<ExprAST>>;
 
 class DeclAST;
 class TypeDeclAST;
@@ -24,7 +26,7 @@ class DeclSeq;
 class Ty;
 // "name = id | record | array" pair
 // one type declaration in a mutually recursive set
-using NamedType = std::pair<Symbol, std::unique_ptr<Ty>>;
+using NamedType = std::pair<symbol::Symbol, std::unique_ptr<Ty>>;
 // all "name: type" pairs in a record declaration
 class TyfieldSeq;
 // one "name: type" pair in a record declaration
@@ -32,7 +34,7 @@ class Tyfield;
 // one function declaration in a mutually recursive set
 class FundecTy;
 
-}
+} // namespace absyn
 
 struct Token {
   union {

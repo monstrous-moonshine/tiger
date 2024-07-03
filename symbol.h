@@ -1,5 +1,8 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
+
+namespace symbol {
+
 class Symbol {
   const char *val;
 
@@ -14,4 +17,6 @@ public:
   // release all strings from the registry
   static void FreeAll();
 };
+
+} // namespace symbol
 #endif

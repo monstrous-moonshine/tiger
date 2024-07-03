@@ -12,7 +12,7 @@ class ExprAST;
 class DeclAST;
 class ExprSeq;
 class Ty;
-}
+} // namespace absyn
 
 namespace yy {
 absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
@@ -22,6 +22,7 @@ namespace absyn {
 
 inline void do_indent(int indent);
 
+using symbol::Symbol;
 using NamedExpr = std::pair<Symbol, uptr<ExprAST>>;
 using NamedType = std::pair<Symbol, uptr<Ty>>;
 
@@ -188,8 +189,7 @@ class OpExprAST : public ExprAST {
   Op op;
 
 public:
-  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op)
-      : lhs(lhs), rhs(rhs), op(op) {}
+  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(lhs), rhs(rhs), op(op) {}
   void print(int indent) override {
     const char *op_str[] = {
         "+", "-", "*", "/", "=", "<>", "<", "<=", ">", ">=", "&", "|",
