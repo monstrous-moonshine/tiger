@@ -20,6 +20,8 @@ absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
 
 namespace absyn {
 
+inline void do_indent(int indent);
+
 using NamedExpr = std::pair<Symbol, uptr<ExprAST>>;
 using NamedType = std::pair<Symbol, uptr<Ty>>;
 
@@ -92,21 +94,10 @@ public:
   }
 };
 
-class Object {
-protected:
-  void do_indent(int indent) {
-    for (int i = 0; i < indent; i++)
-      std::printf(" ");
-  }
-
-public:
-  virtual ~Object() = default;
-  virtual void print(int indent) = 0;
-};
-
-class ExprAST : public Object {
+class ExprAST {
 public:
   virtual ~ExprAST() = default;
+  virtual void print(int) = 0;
 };
 
 class VarExprAST : public ExprAST {
@@ -333,9 +324,10 @@ class BreakExprAST : public ExprAST {
   void print(int) override { std::printf("break"); }
 };
 
-class DeclAST : public Object {
+class DeclAST {
 public:
   virtual ~DeclAST() = default;
+  virtual void print(int) = 0;
 };
 
 class LetExprAST : public ExprAST {
@@ -486,5 +478,11 @@ public:
     }
   }
 };
+
+inline void do_indent(int indent) {
+  for (int i = 0; i < indent; i++)
+    std::printf(" ");
+}
+
 } // namespace absyn
 #endif
