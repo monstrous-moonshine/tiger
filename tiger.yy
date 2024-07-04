@@ -32,7 +32,8 @@ ExprAST *expseq_to_expr(ExprSeq *);
 
 %token ARRAY BREAK DO ELSE END FOR FUNC IF IN LET NEW OF THEN TO TYPE VAR WHILE
 
-%nterm <as.exp> exp op_exp assign_exp record_exp array_exp logical_exp term factor unary primary lvalue
+%nterm <as.exp> exp op_exp assign_exp record_exp array_exp logical_exp term factor unary primary
+%nterm <as.var> lvalue
 %nterm <as.fields> fieldseq fields
 %nterm <as.field> field
 %nterm <as.exps> expseq exps argseq args
@@ -64,11 +65,11 @@ exp:	op_exp
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
-lvalue: ID				{ $$ = new SimpleVarExprAST($1); }
+lvalue: ID				{ $$ = new SimpleVarAST($1); }
 	|
-	lvalue '.' ID			{ $$ = new FieldVarExprAST($1, $3); }
+	lvalue '.' ID			{ $$ = new FieldVarAST($1, $3); }
 	|
-	lvalue '[' op_exp ']'		{ $$ = new IndexVarExprAST($1, $3); }
+	lvalue '[' op_exp ']'		{ $$ = new IndexVarAST($1, $3); }
 	;
 op_exp:
 	logical_exp
@@ -117,7 +118,7 @@ primary:
 	|
 	LET decs IN expseq END 		{ $$ = new LetExprAST($2, expseq_to_expr($4)); }
 	|
-	lvalue
+	lvalue				{ $$ = new VarExprAST($1); }
 	|
 	record_exp
 	|
@@ -160,7 +161,7 @@ fields: field				{ $$ = new FieldSeq(); $$->AddField($1); }
 	|
 	fields ',' field		{ $$ = $1; $$->AddField($3); }
 	;
-field:	ID '=' op_exp			{ $$ = new NamedExpr(Symbol($1), uptr<ExprAST>($3)); }
+field:	ID '=' op_exp			{ $$ = new Field(Symbol($1), uptr<ExprAST>($3)); }
 	;
 
 /*============================== DECLARATIONS ==============================*/
@@ -179,7 +180,7 @@ tydecs: tydec 				{ $$ = new TypeDeclAST(); $$->AddType($1); }
 	|
 	tydecs tydec 			{ $$ = $1; $$->AddType($2); }
 	;
-tydec:	TYPE ID '=' ty 			{ $$ = new NamedType(Symbol($2), uptr<Ty>($4)); }
+tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), uptr<Ty>($4)); }
 	;
 ty:	ID 				{ $$ = new NameTy($1); }
 	|
@@ -188,18 +189,18 @@ ty:	ID 				{ $$ = new NameTy($1); }
 	ARRAY OF ID 			{ $$ = new ArrayTy($3); }
 	;
 tyfieldseq:
-	/* empty */ 			{ $$ = new TyfieldSeq(); }
+	/* empty */ 			{ $$ = new FieldTySeq(); }
 	|
 	tyfields
 	;
 tyfields:
-	tyfield 			{ $$ = new TyfieldSeq(); $$->AddField($1); }
+	tyfield 			{ $$ = new FieldTySeq(); $$->AddField($1); }
 	|
 	tyfields ',' tyfield 		{ $$ = $1; $$->AddField($3);
 	}
 	;
 tyfield:
-	ID ':' ID 			{ $$ = new Tyfield($1, $3); }
+	ID ':' ID 			{ $$ = new FieldTy($1, $3); }
 	;
 vardec:	VAR ID ASSIGN op_exp 		{ $$ = new VarDeclAST($2, nullptr, $4); }
 	|

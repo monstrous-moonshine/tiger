@@ -23,8 +23,8 @@ namespace absyn {
 inline void do_indent(int indent);
 
 using symbol::Symbol;
-using NamedExpr = std::pair<Symbol, uptr<ExprAST>>;
-using NamedType = std::pair<Symbol, uptr<Ty>>;
+using Field = std::pair<Symbol, uptr<ExprAST>>;
+using Type = std::pair<Symbol, uptr<Ty>>;
 
 enum class Op : int {
   kPlus,
@@ -41,15 +41,16 @@ enum class Op : int {
   kOr,
 };
 
-struct Tyfield {
+struct FieldTy {
   Symbol name, type_id;
   bool escape{true};
 
 public:
-  Tyfield(const char *name, const char *type_id)
+  FieldTy(const char *name, const char *type_id)
       : name(name), type_id(type_id) {}
 };
 
+// Temporary classes for AST building convenience {{{
 class ExprSeq {
   std::vector<uptr<ExprAST>> seq;
   friend class CallExprAST;
@@ -71,29 +72,30 @@ public:
 };
 
 class FieldSeq {
-  std::vector<NamedExpr> seq;
+  std::vector<Field> seq;
   friend class RecordExprAST;
 
 public:
   FieldSeq() = default;
-  void AddField(NamedExpr *field) {
+  void AddField(Field *field) {
     seq.push_back(std::move(*field));
     delete field;
   }
 };
 
-class TyfieldSeq {
-  std::vector<Tyfield> seq;
+class FieldTySeq {
+  std::vector<FieldTy> seq;
   friend class RecordTy;
   friend class FundecTy;
 
 public:
-  TyfieldSeq() = default;
-  void AddField(Tyfield *field) {
+  FieldTySeq() = default;
+  void AddField(FieldTy *field) {
     seq.push_back(*field);
     delete field;
   }
 };
+// }}} Temporary classes for AST building convenience
 
 class ExprAST {
 public:
@@ -101,45 +103,53 @@ public:
   virtual void print(int) = 0;
 };
 
-class VarExprAST : public ExprAST {
+class VarAST {
 public:
-  virtual ~VarExprAST() = default;
+  virtual ~VarAST() = default;
+  virtual void print(int) = 0;
 };
 
-class SimpleVarExprAST : public VarExprAST {
+class SimpleVarAST : public VarAST {
   Symbol id;
 
 public:
-  SimpleVarExprAST(const char *id) : id(id) {}
+  SimpleVarAST(const char *id) : id(id) {}
   void print(int) override { std::printf("%s", id.name()); }
 };
 
-class FieldVarExprAST : public VarExprAST {
-  uptr<VarExprAST> var;
+class FieldVarAST : public VarAST {
+  uptr<VarAST> var;
   Symbol field;
 
 public:
-  FieldVarExprAST(ExprAST *var, const char *field)
-      : var(static_cast<VarExprAST *>(var)), field(field) {}
+  FieldVarAST(VarAST *var, const char *field)
+      : var(var), field(field) {}
   void print(int indent) override {
     var->print(indent);
     std::printf(".%s", field.name());
   }
 };
 
-class IndexVarExprAST : public VarExprAST {
-  uptr<VarExprAST> var;
+class IndexVarAST : public VarAST {
+  uptr<VarAST> var;
   uptr<ExprAST> index;
 
 public:
-  IndexVarExprAST(ExprAST *var, ExprAST *index)
-      : var(static_cast<VarExprAST *>(var)), index(index) {}
+  IndexVarAST(VarAST *var, ExprAST *index)
+      : var(var), index(index) {}
   void print(int indent) override {
     var->print(indent);
     std::printf("[");
     index->print(indent);
     std::printf("]");
   }
+};
+
+class VarExprAST : public ExprAST {
+  uptr<VarAST> var;
+public:
+  VarExprAST(VarAST *var) : var(var) {}
+  void print(int indent) override { var->print(indent); }
 };
 
 class NilExprAST : public ExprAST {
@@ -205,7 +215,7 @@ public:
 
 class RecordExprAST : public ExprAST {
   Symbol type_id;
-  std::vector<NamedExpr> args;
+  std::vector<Field> args;
 
 public:
   RecordExprAST(const char *type_id, FieldSeq *args)
@@ -258,12 +268,12 @@ public:
 };
 
 class AssignExprAST : public ExprAST {
-  uptr<VarExprAST> var;
+  uptr<VarAST> var;
   uptr<ExprAST> exp;
 
 public:
-  AssignExprAST(ExprAST *var, ExprAST *exp)
-      : var(static_cast<VarExprAST *>(var)), exp(exp) {}
+  AssignExprAST(VarAST *var, ExprAST *exp)
+      : var(var), exp(exp) {}
   void print(int indent) override {
     var->print(indent);
     std::printf(" := ");
@@ -370,10 +380,10 @@ public:
 };
 
 class RecordTy : public Ty {
-  std::vector<Tyfield> fields;
+  std::vector<FieldTy> fields;
 
 public:
-  RecordTy(TyfieldSeq *fields) : fields(std::move(fields->seq)) {
+  RecordTy(FieldTySeq *fields) : fields(std::move(fields->seq)) {
     delete fields;
   }
   void print(int) override {
@@ -396,11 +406,11 @@ public:
 };
 
 class TypeDeclAST : public DeclAST {
-  std::vector<NamedType> types;
+  std::vector<Type> types;
 
 public:
   TypeDeclAST() = default;
-  void AddType(NamedType *type) {
+  void AddType(Type *type) {
     types.push_back(std::move(*type));
     delete type;
   }
@@ -437,12 +447,12 @@ public:
 
 class FundecTy {
   Symbol name;
-  std::vector<Tyfield> params;
+  std::vector<FieldTy> params;
   Symbol result;
   uptr<ExprAST> body;
 
 public:
-  FundecTy(const char *name, TyfieldSeq *params, const char *result,
+  FundecTy(const char *name, FieldTySeq *params, const char *result,
            ExprAST *body)
       : name(name), params(std::move(params->seq)), result(result), body(body) {
     delete params;

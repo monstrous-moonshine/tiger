@@ -10,12 +10,13 @@ class Symbol;
 namespace absyn {
 
 class ExprAST;
+class VarAST;
 // sequence of expressions in (..; ..; ..) and let expression
 class ExprSeq;
 // all "name = exp" pairs in a record expression
 class FieldSeq;
 // one "name = exp" pair in a record expression
-using NamedExpr = std::pair<symbol::Symbol, std::unique_ptr<ExprAST>>;
+using Field = std::pair<symbol::Symbol, std::unique_ptr<ExprAST>>;
 
 class DeclAST;
 class TypeDeclAST;
@@ -26,11 +27,11 @@ class DeclSeq;
 class Ty;
 // "name = id | record | array" pair
 // one type declaration in a mutually recursive set
-using NamedType = std::pair<symbol::Symbol, std::unique_ptr<Ty>>;
+using Type = std::pair<symbol::Symbol, std::unique_ptr<Ty>>;
 // all "name: type" pairs in a record declaration
-class TyfieldSeq;
+class FieldTySeq;
 // one "name: type" pair in a record declaration
-class Tyfield;
+class FieldTy;
 // one function declaration in a mutually recursive set
 class FundecTy;
 
@@ -41,17 +42,18 @@ struct Token {
     int num;
     char *str;
     absyn::ExprAST *exp;
+    absyn::VarAST *var;
     absyn::ExprSeq *exps;
     absyn::FieldSeq *fields;
-    absyn::NamedExpr *field;
+    absyn::Field *field;
     absyn::DeclAST *decl;
     absyn::TypeDeclAST *tydecs;
     absyn::FuncDeclAST *fundecs;
     absyn::DeclSeq *decls;
     absyn::Ty *ty;
-    absyn::NamedType *tydec;
-    absyn::TyfieldSeq *tyfields;
-    absyn::Tyfield *tyfield;
+    absyn::Type *tydec;
+    absyn::FieldTySeq *tyfields;
+    absyn::FieldTy *tyfield;
     absyn::FundecTy *fundec;
   } as;
   int line;
