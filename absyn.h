@@ -138,7 +138,8 @@ public:
 class VarAST {
 public:
   using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
-  value_type value;
+  template <typename T> VarAST(T &&v) : value_(std::move(v)) {}
+  const value_type &value() const { return value_; }
   void print(int indent) {
     std::visit(overloaded{[](SimpleVarAST &var) {
                             std::printf("%s", var.id().name());
@@ -153,8 +154,11 @@ public:
                             var.index()->print(indent);
                             std::printf("]");
                           }},
-               value);
+               value_);
   }
+
+private:
+  value_type value_;
 };
 
 class VarExprAST : public ExprAST {
