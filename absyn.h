@@ -369,9 +369,11 @@ public:
     }
     do_indent(indent + 2);
     std::printf("in\n");
-    do_indent(indent + 4);
-    exp->print(indent + 4);
-    std::printf("\n");
+    if (exp) {
+      do_indent(indent + 4);
+      exp->print(indent + 4);
+      std::printf("\n");
+    }
     do_indent(indent);
     std::printf("end\n");
   }
