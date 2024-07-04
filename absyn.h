@@ -102,7 +102,7 @@ public:
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
-  virtual void print(int) = 0;
+  virtual void print(int) const = 0;
 };
 
 class VarAST;
@@ -121,7 +121,7 @@ class FieldVarAST {
 
 public:
   FieldVarAST(VarAST *var, const char *field) : var_(var), field_(field) {}
-  VarAST *var() const { return var_.get(); }
+  const VarAST &var() const { return *var_; }
   Symbol field() const { return field_; }
 };
 
@@ -131,8 +131,8 @@ class IndexVarAST {
 
 public:
   IndexVarAST(VarAST *var, ExprAST *index) : var_(var), index_(index) {}
-  VarAST *var() const { return var_.get(); }
-  ExprAST *index() const { return index_.get(); }
+  const VarAST &var() const { return *var_; }
+  const ExprAST &index() const { return *index_; }
 };
 
 class PrintVarAST {
@@ -147,25 +147,21 @@ public:
 class VarAST {
 public:
   using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
-  template <typename T> VarAST(T &&v) : value_(std::move(v)) {}
-  const value_type &value() const { return value_; }
-  void print(int indent) { std::visit(PrintVarAST(indent), value_); }
-
-private:
-  value_type value_;
+  value_type value;
+  void print(int indent) const { std::visit(PrintVarAST(indent), value); }
 };
 
 inline void PrintVarAST::operator()(const SimpleVarAST &var) {
   std::printf("%s", var.id().name());
 }
 inline void PrintVarAST::operator()(const FieldVarAST &var) {
-  var.var()->print(indent_);
+  var.var().print(indent_);
   std::printf(".%s", var.field().name());
 }
 inline void PrintVarAST::operator()(const IndexVarAST &var) {
-  var.var()->print(indent_);
+  var.var().print(indent_);
   std::printf("[");
-  var.index()->print(indent_);
+  var.index().print(indent_);
   std::printf("]");
 }
 
@@ -174,12 +170,12 @@ class VarExprAST : public ExprAST {
 
 public:
   VarExprAST(VarAST *var) : var(var) {}
-  void print(int indent) override { var->print(indent); }
+  void print(int indent) const override { var->print(indent); }
 };
 
 class NilExprAST : public ExprAST {
 public:
-  void print(int) override { std::printf("nil"); }
+  void print(int) const override { std::printf("nil"); }
 };
 
 class IntExprAST : public ExprAST {
@@ -187,7 +183,7 @@ class IntExprAST : public ExprAST {
 
 public:
   IntExprAST(int val) : val(val) {}
-  void print(int) override { std::printf("%d", val); }
+  void print(int) const override { std::printf("%d", val); }
 };
 
 class StringExprAST : public ExprAST {
@@ -195,7 +191,7 @@ class StringExprAST : public ExprAST {
 
 public:
   StringExprAST(const char *val) : val(val) {}
-  void print(int) override { std::printf("%s", val.name()); }
+  void print(int) const override { std::printf("%s", val.name()); }
 };
 
 class CallExprAST : public ExprAST {
@@ -207,7 +203,7 @@ public:
       : fn(fn), args(std::move(args->seq)) {
     delete args;
   }
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("%s(", fn.name());
     const char *sep = "";
     for (const auto &arg : args) {
@@ -225,7 +221,7 @@ class OpExprAST : public ExprAST {
 
 public:
   OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(lhs), rhs(rhs), op(op) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     const char *op_str[] = {
         "+", "-", "*", "/", "=", "<>", "<", "<=", ">", ">=", "&", "|",
     };
@@ -247,7 +243,7 @@ public:
       : type_id(type_id), args(std::move(args->seq)) {
     delete args;
   }
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("%s {", type_id.name());
     const char *sep = "";
     for (const auto &field : args) {
@@ -266,7 +262,7 @@ class ArrayExprAST : public ExprAST {
 public:
   ArrayExprAST(const char *type_id, ExprAST *size, ExprAST *init)
       : type_id(type_id), size(size), init(init) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("%s [", type_id.name());
     size->print(indent);
     std::printf("]");
@@ -280,7 +276,7 @@ class SeqExprAST : public ExprAST {
 
 public:
   SeqExprAST(ExprSeq *exps) : exps(std::move(exps->seq)) { delete exps; }
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("(");
     const char *sep = "";
     for (const auto &exp : exps) {
@@ -298,7 +294,7 @@ class AssignExprAST : public ExprAST {
 
 public:
   AssignExprAST(VarAST *var, ExprAST *exp) : var(var), exp(exp) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     var->print(indent);
     std::printf(" := ");
     exp->print(indent);
@@ -311,7 +307,7 @@ class IfExprAST : public ExprAST {
 public:
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
       : cond(cond), then(then), else_(else_) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("if ");
     cond->print(indent);
     std::printf(" then ");
@@ -328,7 +324,7 @@ class WhileExprAST : public ExprAST {
 
 public:
   WhileExprAST(ExprAST *cond, ExprAST *body) : cond(cond), body(body) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("while ");
     cond->print(indent);
     std::printf(" do ");
@@ -344,7 +340,7 @@ class ForExprAST : public ExprAST {
 public:
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
       : var(var), lo(lo), hi(hi), body(body) {}
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("for %s := ", var.name());
     lo->print(indent);
     std::printf(" to ");
@@ -355,7 +351,7 @@ public:
 };
 
 class BreakExprAST : public ExprAST {
-  void print(int) override { std::printf("break"); }
+  void print(int) const override { std::printf("break"); }
 };
 
 class DeclAST {
@@ -373,7 +369,7 @@ public:
       : decs(std::move(decs->seq)), exp(exp) {
     delete decs;
   }
-  void print(int indent) override {
+  void print(int indent) const override {
     std::printf("let\n");
     for (auto &dec : decs) {
       do_indent(indent + 4);

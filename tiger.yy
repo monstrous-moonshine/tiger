@@ -65,11 +65,11 @@ exp:	op_exp
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
-lvalue: ID				{ $$ = new VarAST(SimpleVarAST($1)); }
+lvalue: ID				{ $$ = new VarAST{SimpleVarAST($1)}; }
 	|
-	lvalue '.' ID			{ $$ = new VarAST(FieldVarAST($1, $3)); }
+	lvalue '.' ID			{ $$ = new VarAST{FieldVarAST($1, $3)}; }
 	|
-	lvalue '[' op_exp ']'		{ $$ = new VarAST(IndexVarAST($1, $3)); }
+	lvalue '[' op_exp ']'		{ $$ = new VarAST{IndexVarAST($1, $3)}; }
 	;
 op_exp:
 	logical_exp
