@@ -135,31 +135,39 @@ public:
   ExprAST *index() const { return index_.get(); }
 };
 
+class PrintVarAST {
+  int indent_;
+public:
+  PrintVarAST(int indent) : indent_(indent) {}
+  void operator()(const SimpleVarAST &);
+  void operator()(const FieldVarAST &);
+  void operator()(const IndexVarAST &);
+};
+
 class VarAST {
 public:
   using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
   template <typename T> VarAST(T &&v) : value_(std::move(v)) {}
   const value_type &value() const { return value_; }
-  void print(int indent) {
-    std::visit(overloaded{[](SimpleVarAST &var) {
-                            std::printf("%s", var.id().name());
-                          },
-                          [indent](FieldVarAST &var) {
-                            var.var()->print(indent);
-                            std::printf(".%s", var.field().name());
-                          },
-                          [indent](IndexVarAST &var) {
-                            var.var()->print(indent);
-                            std::printf("[");
-                            var.index()->print(indent);
-                            std::printf("]");
-                          }},
-               value_);
-  }
+  void print(int indent) { std::visit(PrintVarAST(indent), value_); }
 
 private:
   value_type value_;
 };
+
+inline void PrintVarAST::operator()(const SimpleVarAST &var) {
+  std::printf("%s", var.id().name());
+}
+inline void PrintVarAST::operator()(const FieldVarAST &var) {
+  var.var()->print(indent_);
+  std::printf(".%s", var.field().name());
+}
+inline void PrintVarAST::operator()(const IndexVarAST &var) {
+  var.var()->print(indent_);
+  std::printf("[");
+  var.index()->print(indent_);
+  std::printf("]");
+}
 
 class VarExprAST : public ExprAST {
   uptr<VarAST> var;
