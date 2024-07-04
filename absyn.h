@@ -387,45 +387,65 @@ public:
   }
 };
 
-class Ty {
+class Ty;
+
+class NameTy {
+  Symbol type_id_;
+
 public:
-  virtual ~Ty() = default;
-  virtual void print(int) = 0;
+  NameTy(const char *id) : type_id_(id) {}
+  Symbol type_id() const { return type_id_; }
 };
 
-class NameTy : public Ty {
-  Symbol type_id;
+class RecordTy {
+  std::vector<FieldTy> fields_;
 
 public:
-  NameTy(const char *id) : type_id(id) {}
-  void print(int) override { std::printf("%s", type_id.name()); }
-};
-
-class RecordTy : public Ty {
-  std::vector<FieldTy> fields;
-
-public:
-  RecordTy(FieldTySeq *fields) : fields(std::move(fields->seq)) {
+  RecordTy(FieldTySeq *fields) : fields_(std::move(fields->seq)) {
     delete fields;
   }
-  void print(int) override {
-    std::printf("{");
-    const char *sep = "";
-    for (const auto &field : fields) {
-      std::printf("%s%s: %s", sep, field.name.name(), field.type_id.name());
-      sep = ", ";
-    }
-    std::printf("}");
-  }
+  const auto &fields() const { return fields_; }
 };
 
-class ArrayTy : public Ty {
-  Symbol type_id;
+class ArrayTy {
+  Symbol type_id_;
 
 public:
-  ArrayTy(const char *id) : type_id(id) {}
-  void print(int) override { std::printf("array of %s", type_id.name()); }
+  ArrayTy(const char *id) : type_id_(id) {}
+  Symbol type_id() const { return type_id_; }
 };
+
+class PrintTy {
+  int indent_;
+public:
+  PrintTy(int indent) : indent_(indent) {}
+  void operator()(const NameTy &);
+  void operator()(const RecordTy &);
+  void operator()(const ArrayTy &);
+};
+
+class Ty {
+public:
+  using value_type = std::variant<NameTy, RecordTy, ArrayTy>;
+  value_type value;
+  void print(int indent) const { std::visit(PrintTy(indent), value); }
+};
+
+inline void PrintTy::operator()(const NameTy &ty) {
+  std::printf("%s", ty.type_id().name());
+}
+inline void PrintTy::operator()(const RecordTy &ty) {
+  std::printf("{");
+  const char *sep = "";
+  for (const auto &field : ty.fields()) {
+    std::printf("%s%s: %s", sep, field.name.name(), field.type_id.name());
+    sep = ", ";
+  }
+  std::printf("}");
+}
+inline void PrintTy::operator()(const ArrayTy &ty) {
+  std::printf("array of %s", ty.type_id().name());
+}
 
 class TypeDeclAST : public DeclAST {
   std::vector<Type> types;

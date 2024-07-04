@@ -182,11 +182,11 @@ tydecs: tydec 				{ $$ = new TypeDeclAST(); $$->AddType($1); }
 	;
 tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), uptr<Ty>($4)); }
 	;
-ty:	ID 				{ $$ = new NameTy($1); }
+ty:	ID 				{ $$ = new Ty{NameTy($1)}; }
 	|
-	'{' tyfieldseq '}' 		{ $$ = new RecordTy($2); }
+	'{' tyfieldseq '}' 		{ $$ = new Ty{RecordTy($2)}; }
 	|
-	ARRAY OF ID 			{ $$ = new ArrayTy($3); }
+	ARRAY OF ID 			{ $$ = new Ty{ArrayTy($3)}; }
 	;
 tyfieldseq:
 	/* empty */ 			{ $$ = new FieldTySeq(); }
