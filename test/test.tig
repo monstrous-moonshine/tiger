@@ -3,6 +3,6 @@ let type a = b
     var a : int := 340
   in
     a.field := new record { a=1, b=2, c=3};
-    b.arr := new arr [1 + 2] of func(3, 6);
+    b.arr := new arr [1 + 2] of func(3, 6) end;
     my_fun(1, 2, 3)
 end
