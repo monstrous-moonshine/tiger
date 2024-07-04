@@ -1,8 +1,10 @@
 #ifndef ABSYN_H
 #define ABSYN_H
 #include "symbol.h"
+#include "visitor.h"
 #include <cstdio>
 #include <memory>
+#include <variant>
 #include <vector>
 
 template <typename T> using uptr = std::unique_ptr<T>;
@@ -103,50 +105,61 @@ public:
   virtual void print(int) = 0;
 };
 
+class VarAST;
+
+class SimpleVarAST {
+  Symbol id_;
+
+public:
+  SimpleVarAST(const char *id) : id_(id) {}
+  Symbol id() const { return id_; }
+};
+
+class FieldVarAST {
+  uptr<VarAST> var_;
+  Symbol field_;
+
+public:
+  FieldVarAST(VarAST *var, const char *field) : var_(var), field_(field) {}
+  VarAST *var() const { return var_.get(); }
+  Symbol field() const { return field_; }
+};
+
+class IndexVarAST {
+  uptr<VarAST> var_;
+  uptr<ExprAST> index_;
+
+public:
+  IndexVarAST(VarAST *var, ExprAST *index) : var_(var), index_(index) {}
+  VarAST *var() const { return var_.get(); }
+  ExprAST *index() const { return index_.get(); }
+};
+
 class VarAST {
 public:
-  virtual ~VarAST() = default;
-  virtual void print(int) = 0;
-};
-
-class SimpleVarAST : public VarAST {
-  Symbol id;
-
-public:
-  SimpleVarAST(const char *id) : id(id) {}
-  void print(int) override { std::printf("%s", id.name()); }
-};
-
-class FieldVarAST : public VarAST {
-  uptr<VarAST> var;
-  Symbol field;
-
-public:
-  FieldVarAST(VarAST *var, const char *field)
-      : var(var), field(field) {}
-  void print(int indent) override {
-    var->print(indent);
-    std::printf(".%s", field.name());
-  }
-};
-
-class IndexVarAST : public VarAST {
-  uptr<VarAST> var;
-  uptr<ExprAST> index;
-
-public:
-  IndexVarAST(VarAST *var, ExprAST *index)
-      : var(var), index(index) {}
-  void print(int indent) override {
-    var->print(indent);
-    std::printf("[");
-    index->print(indent);
-    std::printf("]");
+  using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
+  value_type value;
+  void print(int indent) {
+    std::visit(overloaded{[](SimpleVarAST &var) {
+                            std::printf("%s", var.id().name());
+                          },
+                          [indent](FieldVarAST &var) {
+                            var.var()->print(indent);
+                            std::printf(".%s", var.field().name());
+                          },
+                          [indent](IndexVarAST &var) {
+                            var.var()->print(indent);
+                            std::printf("[");
+                            var.index()->print(indent);
+                            std::printf("]");
+                          }},
+               value);
   }
 };
 
 class VarExprAST : public ExprAST {
   uptr<VarAST> var;
+
 public:
   VarExprAST(VarAST *var) : var(var) {}
   void print(int indent) override { var->print(indent); }
@@ -272,8 +285,7 @@ class AssignExprAST : public ExprAST {
   uptr<ExprAST> exp;
 
 public:
-  AssignExprAST(VarAST *var, ExprAST *exp)
-      : var(var), exp(exp) {}
+  AssignExprAST(VarAST *var, ExprAST *exp) : var(var), exp(exp) {}
   void print(int indent) override {
     var->print(indent);
     std::printf(" := ");
