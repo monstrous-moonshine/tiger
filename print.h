@@ -14,9 +14,7 @@ class VarASTPrintVisitor : public VarASTVisitor {
 
 public:
   VarASTPrintVisitor(int indent) : indent_(indent) {}
-  void visit(SimpleVarAST &var) override {
-    std::printf("%s", var.id.name());
-  }
+  void visit(SimpleVarAST &var) override { std::printf("%s", var.id.name()); }
   void visit(FieldVarAST &var) override {
     var.var->accept(*this);
     std::printf(".%s", var.field.name());
@@ -26,6 +24,7 @@ public:
 
 class ExprASTPrintVisitor : public ExprASTVisitor {
   int indent_;
+
 public:
   ExprASTPrintVisitor(int indent) : indent_(indent) {}
   virtual ~ExprASTPrintVisitor() = default;
@@ -140,9 +139,7 @@ class TyPrintVisitor : public TyVisitor {
 
 public:
   TyPrintVisitor(int indent) : indent_(indent) {}
-  void visit(NameTy &ty) override {
-    std::printf("%s", ty.type_id.name());
-  }
+  void visit(NameTy &ty) override { std::printf("%s", ty.type_id.name()); }
   void visit(RecordTy &ty) override {
     std::printf("{");
     const char *sep = "";
@@ -225,5 +222,5 @@ inline void FundecTy::print(int indent) {
   body->accept(v);
 }
 
-}
+} // namespace absyn
 #endif

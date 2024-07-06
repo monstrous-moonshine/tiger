@@ -1,7 +1,6 @@
 #ifndef ABSYN_H
 #define ABSYN_H
 #include "symbol.h"
-#include "visitor.h"
 #include <cstdio>
 #include <memory>
 #include <variant>
@@ -21,8 +20,6 @@ absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
 }
 
 namespace absyn {
-
-inline void do_indent(int indent);
 
 using symbol::Symbol;
 using Field = std::pair<Symbol, uptr<ExprAST>>;
