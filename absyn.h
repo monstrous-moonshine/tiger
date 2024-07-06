@@ -39,14 +39,14 @@ struct FieldTy {
 
 // Temporary classes for AST building convenience {{{
 class ExprSeq {
-  std::vector<uptr<ExprAST>> seq;
+  std::vector<ExprAST> seq;
   friend class CallExprAST;
   friend class SeqExprAST;
   friend ExprAST *yy::expseq_to_expr(ExprSeq *);
 
 public:
   ExprSeq() = default;
-  void AddExpr(ExprAST *exp) { seq.push_back(uptr<ExprAST>(exp)); }
+  void AddExpr(ExprAST *exp) { seq.push_back(std::move(*exp)); }
 };
 
 class DeclSeq {
@@ -100,10 +100,10 @@ struct FieldVarAST {
 
 struct IndexVarAST {
   VarAST var;
-  uptr<ExprAST> index;
+  ExprAST index;
 
   IndexVarAST(VarAST *var, ExprAST *index)
-      : var(std::move(*var)), index(index) {}
+      : var(std::move(*var)), index(std::move(*index)) {}
 };
 
 struct VarExprAST : ExprAST {
@@ -128,7 +128,7 @@ struct StringExprAST : ExprAST {
 
 struct CallExprAST : ExprAST {
   Symbol fn;
-  std::vector<uptr<ExprAST>> args;
+  std::vector<ExprAST> args;
 
   CallExprAST(const char *fn, ExprSeq *args)
       : fn(fn), args(std::move(args->seq)) {
@@ -137,10 +137,10 @@ struct CallExprAST : ExprAST {
 };
 
 struct OpExprAST : ExprAST {
-  uptr<ExprAST> lhs, rhs;
+  ExprAST lhs, rhs;
   Op op;
 
-  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(lhs), rhs(rhs), op(op) {}
+  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(std::move(*lhs)), rhs(std::move(*rhs)), op(op) {}
 };
 
 struct RecordExprAST : ExprAST {
@@ -155,55 +155,55 @@ struct RecordExprAST : ExprAST {
 
 struct ArrayExprAST : ExprAST {
   Symbol type_id;
-  uptr<ExprAST> size, init;
+  ExprAST size, init;
 
   ArrayExprAST(const char *type_id, ExprAST *size, ExprAST *init)
-      : type_id(type_id), size(size), init(init) {}
+      : type_id(type_id), size(std::move(*size)), init(std::move(*init)) {}
 };
 
 struct SeqExprAST : ExprAST {
-  std::vector<uptr<ExprAST>> exps;
+  std::vector<ExprAST> exps;
 
   SeqExprAST(ExprSeq *exps) : exps(std::move(exps->seq)) { delete exps; }
 };
 
 struct AssignExprAST : ExprAST {
   VarAST var;
-  uptr<ExprAST> exp;
+  ExprAST exp;
 
-  AssignExprAST(VarAST *var, ExprAST *exp) : var(std::move(*var)), exp(exp) {}
+  AssignExprAST(VarAST *var, ExprAST *exp) : var(std::move(*var)), exp(std::move(*exp)) {}
 };
 
 struct IfExprAST : ExprAST {
-  uptr<ExprAST> cond, then, else_;
+  ExprAST cond, then, else_;
 
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
-      : cond(cond), then(then), else_(else_) {}
+      : cond(std::move(*cond)), then(std::move(*then)), else_(std::move(*else_)) {}
 };
 
 struct WhileExprAST : ExprAST {
-  uptr<ExprAST> cond, body;
+  ExprAST cond, body;
 
-  WhileExprAST(ExprAST *cond, ExprAST *body) : cond(cond), body(body) {}
+  WhileExprAST(ExprAST *cond, ExprAST *body) : cond(std::move(*cond)), body(std::move(*body)) {}
 };
 
 struct ForExprAST : ExprAST {
   Symbol var;
-  uptr<ExprAST> lo, hi, body;
+  ExprAST lo, hi, body;
   bool escape{true};
 
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
-      : var(var), lo(lo), hi(hi), body(body) {}
+      : var(var), lo(std::move(*lo)), hi(std::move(*hi)), body(std::move(*body)) {}
 };
 
 struct BreakExprAST : ExprAST {};
 
 struct LetExprAST : ExprAST {
   std::vector<DeclAST> decs;
-  uptr<ExprAST> exp;
+  ExprAST exp;
 
   LetExprAST(DeclSeq *decs, ExprAST *exp)
-      : decs(std::move(decs->seq)), exp(exp) {
+      : decs(std::move(decs->seq)), exp(std::move(*exp)) {
     delete decs;
   }
 };
@@ -241,21 +241,21 @@ struct TypeDeclAST {
 struct VarDeclAST {
   Symbol name, type_id;
   bool escape{true};
-  uptr<ExprAST> init;
+  ExprAST init;
 
   VarDeclAST(const char *name, const char *type_id, ExprAST *init)
-      : name(name), type_id(type_id), init(init) {}
+      : name(name), type_id(type_id), init(std::move(*init)) {}
 };
 
 struct FundecTy {
   Symbol name;
   std::vector<FieldTy> params;
   Symbol result;
-  uptr<ExprAST> body;
+  ExprAST body;
 
   FundecTy(const char *name, FieldTySeq *params, const char *result,
            ExprAST *body)
-      : name(name), params(std::move(params->seq)), result(result), body(body) {
+      : name(name), params(std::move(params->seq)), result(result), body(std::move(*body)) {
     delete params;
   }
   void print(int indent);

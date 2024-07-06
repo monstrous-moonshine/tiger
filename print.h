@@ -36,9 +36,9 @@ public:
   void operator()(uptr<CallExprAST> &e) {
     std::printf("%s(", e->fn.name());
     const char *sep = "";
-    for (const auto &arg : e->args) {
+    for (auto &arg : e->args) {
       std::printf("%s", sep);
-      std::visit(ExprASTPrintVisitor(indent_), *arg);
+      std::visit(ExprASTPrintVisitor(indent_), arg);
       sep = ", ";
     }
     std::printf(")");
@@ -49,35 +49,34 @@ public:
     };
     std::printf("(");
     // this is a bit arbitrary
-    std::visit(ExprASTPrintVisitor(indent_ + 2), *e->lhs);
+    std::visit(ExprASTPrintVisitor(indent_ + 2), e->lhs);
     std::printf("%s", op_str[static_cast<int>(e->op)]);
-    std::visit(ExprASTPrintVisitor(indent_ + 2), *e->rhs);
+    std::visit(ExprASTPrintVisitor(indent_ + 2), e->rhs);
     std::printf(")");
   }
   void operator()(uptr<RecordExprAST> &e) {
     std::printf("%s {", e->type_id.name());
     const char *sep = "";
-    for (const auto &field : e->args) {
+    for (auto &field : e->args) {
       std::printf("%s%s=", sep, field.first.name());
-      std::visit(ExprASTPrintVisitor(indent_), *field.second);
+      std::visit(ExprASTPrintVisitor(indent_), field.second);
       sep = ", ";
     }
     std::printf("}");
   }
   void operator()(uptr<ArrayExprAST> &e) {
     std::printf("%s [", e->type_id.name());
-    std::visit(ExprASTPrintVisitor(indent_), *e->size);
+    std::visit(ExprASTPrintVisitor(indent_), e->size);
     std::printf("]");
     std::printf(" of ");
-    std::visit(ExprASTPrintVisitor(indent_), *e->init);
+    std::visit(ExprASTPrintVisitor(indent_), e->init);
   }
   void operator()(uptr<SeqExprAST> &e) {
     std::printf("(");
     const char *sep = "";
-    for (const auto &exp : e->exps) {
+    for (auto &exp : e->exps) {
       std::printf("%s", sep);
-      ExprASTPrintVisitor v(indent_);
-      std::visit(ExprASTPrintVisitor(indent_), *exp);
+      std::visit(ExprASTPrintVisitor(indent_), exp);
       sep = "; ";
     }
     std::printf(")");
@@ -85,35 +84,34 @@ public:
   void operator()(uptr<AssignExprAST> &e) {
     std::visit(VarASTPrintVisitor(indent_), e->var);
     std::printf(" := ");
-    ExprASTPrintVisitor ev(indent_);
-    std::visit(ExprASTPrintVisitor(indent_), *e->exp);
+    std::visit(ExprASTPrintVisitor(indent_), e->exp);
   }
   void operator()(uptr<IfExprAST> &e) {
     std::printf("if ");
     ExprASTPrintVisitor v(indent_);
-    std::visit(ExprASTPrintVisitor(indent_), *e->cond);
+    std::visit(ExprASTPrintVisitor(indent_), e->cond);
     std::printf(" then ");
-    std::visit(ExprASTPrintVisitor(indent_), *e->then);
-    if (e->else_) {
+    std::visit(ExprASTPrintVisitor(indent_), e->then);
+    if (auto e1 = std::get_if<uptr<NilExprAST>>(&e->else_); !e1 || !*e1) {
       std::printf(" else ");
-      std::visit(ExprASTPrintVisitor(indent_), *e->else_);
+      std::visit(ExprASTPrintVisitor(indent_), e->else_);
     }
   }
   void operator()(uptr<WhileExprAST> &e) {
     std::printf("while ");
     ExprASTPrintVisitor v(indent_);
-    std::visit(ExprASTPrintVisitor(indent_), *e->cond);
+    std::visit(ExprASTPrintVisitor(indent_), e->cond);
     std::printf(" do ");
-    std::visit(ExprASTPrintVisitor(indent_), *e->body);
+    std::visit(ExprASTPrintVisitor(indent_), e->body);
   }
   void operator()(uptr<ForExprAST> &e) {
     std::printf("for %s := ", e->var.name());
     ExprASTPrintVisitor v(indent_);
-    std::visit(ExprASTPrintVisitor(indent_), *e->lo);
+    std::visit(ExprASTPrintVisitor(indent_), e->lo);
     std::printf(" to ");
-    std::visit(ExprASTPrintVisitor(indent_), *e->hi);
+    std::visit(ExprASTPrintVisitor(indent_), e->hi);
     std::printf(" do ");
-    std::visit(ExprASTPrintVisitor(indent_), *e->body);
+    std::visit(ExprASTPrintVisitor(indent_), e->body);
   }
   void operator()(uptr<BreakExprAST> &) { std::printf("break"); }
   void operator()(uptr<LetExprAST> &e);
@@ -122,7 +120,7 @@ public:
 inline void VarASTPrintVisitor::operator()(uptr<IndexVarAST> &var) {
   std::visit(VarASTPrintVisitor(indent_), var->var);
   std::printf("[");
-  std::visit(ExprASTPrintVisitor(indent_), *var->index);
+  std::visit(ExprASTPrintVisitor(indent_), var->index);
   std::printf("]");
 }
 
@@ -168,7 +166,7 @@ public:
     if (decl->type_id)
       std::printf(": %s", decl->type_id.name());
     std::printf(" := ");
-    std::visit(ExprASTPrintVisitor(indent_), *decl->init);
+    std::visit(ExprASTPrintVisitor(indent_), decl->init);
     std::printf("\n");
   }
   void operator()(uptr<FuncDeclAST> &decl) {
@@ -187,9 +185,9 @@ inline void ExprASTPrintVisitor::operator()(uptr<LetExprAST> &e) {
   }
   do_indent(indent_ + 2);
   std::printf("in\n");
-  if (e->exp) {
+  if (auto e1 = std::get_if<uptr<NilExprAST>>(&e->exp); !e1 || !*e1) {
     do_indent(indent_ + 4);
-    std::visit(ExprASTPrintVisitor(indent_ + 4), *e->exp);
+    std::visit(ExprASTPrintVisitor(indent_ + 4), e->exp);
     std::printf("\n");
   }
   do_indent(indent_);
@@ -207,7 +205,7 @@ inline void FundecTy::print(int indent) {
   if (result)
     std::printf(" : %s", result.name());
   std::printf(" =\n");
-  std::visit(ExprASTPrintVisitor(indent + 2), *body);
+  std::visit(ExprASTPrintVisitor(indent + 2), body);
 }
 
 } // namespace absyn

@@ -50,7 +50,7 @@ struct FuncDeclAST;
 using DeclAST =
     std::variant<uptr<TypeDeclAST>, uptr<VarDeclAST>, uptr<FuncDeclAST>>;
 
-using Field = std::pair<symbol::Symbol, uptr<ExprAST>>;
+using Field = std::pair<symbol::Symbol, ExprAST>;
 using Type = std::pair<symbol::Symbol, Ty>;
 
 class ExprSeq;

@@ -160,7 +160,7 @@ fields: field				{ $$ = new FieldSeq(); $$->AddField($1); }
 	|
 	fields ',' field		{ $$ = $1; $$->AddField($3); }
 	;
-field:	ID '=' op_exp			{ $$ = new Field(Symbol($1), uptr<ExprAST>($3)); }
+field:	ID '=' op_exp			{ $$ = new Field(Symbol($1), std::move(*$3)); }
 	;
 
 /*============================== DECLARATIONS ==============================*/
@@ -229,11 +229,11 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
     switch (exps->seq.size()) {
     case 0:
 	delete exps;
-	return nullptr;
+	return new ExprAST{uptr<NilExprAST>(nullptr)};
     case 1: {
-	auto *ptr = exps->seq[0].release();
+	auto exp = new ExprAST{std::move(exps->seq[0])};
 	delete exps;
-	return new ExprAST(std::move(*ptr));
+	return exp;
     }
     default:
 	return new ExprAST{make_unique<SeqExprAST>(exps)};
