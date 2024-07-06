@@ -65,11 +65,11 @@ exp:	op_exp
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
-lvalue: ID				{ $$ = new VarAST{SimpleVarAST($1)}; }
+lvalue: ID				{ $$ = new SimpleVarAST($1); }
 	|
-	lvalue '.' ID			{ $$ = new VarAST{FieldVarAST($1, $3)}; }
+	lvalue '.' ID			{ $$ = new FieldVarAST($1, $3); }
 	|
-	lvalue '[' op_exp ']'		{ $$ = new VarAST{IndexVarAST($1, $3)}; }
+	lvalue '[' op_exp ']'		{ $$ = new IndexVarAST($1, $3); }
 	;
 op_exp:
 	logical_exp
@@ -182,11 +182,11 @@ tydecs: tydec 				{ $$ = new TypeDeclAST(); $$->AddType($1); }
 	;
 tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), uptr<Ty>($4)); }
 	;
-ty:	ID 				{ $$ = new Ty{NameTy($1)}; }
+ty:	ID 				{ $$ = new NameTy($1); }
 	|
-	'{' tyfieldseq '}' 		{ $$ = new Ty{RecordTy($2)}; }
+	'{' tyfieldseq '}' 		{ $$ = new RecordTy($2); }
 	|
-	ARRAY OF ID 			{ $$ = new Ty{ArrayTy($3)}; }
+	ARRAY OF ID 			{ $$ = new ArrayTy($3); }
 	;
 tyfieldseq:
 	/* empty */ 			{ $$ = new FieldTySeq(); }

@@ -10,10 +10,10 @@
 template <typename T> using uptr = std::unique_ptr<T>;
 
 namespace absyn {
-class ExprAST;
-class DeclAST;
-class ExprSeq;
-class Ty;
+struct ExprAST;
+struct DeclAST;
+struct ExprSeq;
+struct Ty;
 } // namespace absyn
 
 namespace yy {
@@ -47,7 +47,6 @@ struct FieldTy {
   Symbol name, type_id;
   bool escape{true};
 
-public:
   FieldTy(const char *name, const char *type_id)
       : name(name), type_id(type_id) {}
 };
@@ -99,450 +98,308 @@ public:
 };
 // }}} Temporary classes for AST building convenience
 
-class ExprAST {
+struct SimpleVarAST;
+struct FieldVarAST;
+struct IndexVarAST;
+
+class VarASTVisitor {
 public:
+  virtual ~VarASTVisitor() = default;
+  virtual void visit(SimpleVarAST &) = 0;
+  virtual void visit(FieldVarAST &) = 0;
+  virtual void visit(IndexVarAST &) = 0;
+};
+
+struct VarExprAST;
+struct NilExprAST;
+struct IntExprAST;
+struct StringExprAST;
+struct CallExprAST;
+struct OpExprAST;
+struct RecordExprAST;
+struct ArrayExprAST;
+struct SeqExprAST;
+struct AssignExprAST;
+struct IfExprAST;
+struct WhileExprAST;
+struct ForExprAST;
+struct BreakExprAST;
+struct LetExprAST;
+
+class ExprASTVisitor {
+public:
+  virtual ~ExprASTVisitor() = default;
+  virtual void visit(VarExprAST &) = 0;
+  virtual void visit(NilExprAST &) = 0;
+  virtual void visit(IntExprAST &) = 0;
+  virtual void visit(StringExprAST &) = 0;
+  virtual void visit(CallExprAST &) = 0;
+  virtual void visit(OpExprAST &) = 0;
+  virtual void visit(RecordExprAST &) = 0;
+  virtual void visit(ArrayExprAST &) = 0;
+  virtual void visit(SeqExprAST &) = 0;
+  virtual void visit(AssignExprAST &) = 0;
+  virtual void visit(IfExprAST &) = 0;
+  virtual void visit(WhileExprAST &) = 0;
+  virtual void visit(ForExprAST &) = 0;
+  virtual void visit(BreakExprAST &) = 0;
+  virtual void visit(LetExprAST &) = 0;
+};
+
+struct NameTy;
+struct RecordTy;
+struct ArrayTy;
+
+class TyVisitor {
+public:
+  virtual ~TyVisitor() = default;
+  virtual void visit(NameTy &) = 0;
+  virtual void visit(RecordTy &) = 0;
+  virtual void visit(ArrayTy &) = 0;
+};
+
+struct TypeDeclAST;
+struct VarDeclAST;
+struct FuncDeclAST;
+
+class DeclASTVisitor {
+public:
+  virtual ~DeclASTVisitor() = default;
+  virtual void visit(TypeDeclAST &) = 0;
+  virtual void visit(VarDeclAST &) = 0;
+  virtual void visit(FuncDeclAST &) = 0;
+};
+
+struct VarAST {
+  virtual ~VarAST() = default;
+  virtual void accept(VarASTVisitor &) = 0;
+};
+
+struct SimpleVarAST : VarAST {
+  Symbol id;
+
+  SimpleVarAST(const char *id) : id(id) {}
+  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+struct FieldVarAST : VarAST {
+  uptr<VarAST> var;
+  Symbol field;
+
+  FieldVarAST(VarAST *var, const char *field) : var(var), field(field) {}
+  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+struct IndexVarAST : VarAST {
+  uptr<VarAST> var;
+  uptr<ExprAST> index;
+
+  IndexVarAST(VarAST *var, ExprAST *index) : var(var), index(index) {}
+  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+struct ExprAST {
   virtual ~ExprAST() = default;
-  virtual void print(int) const = 0;
+  virtual void accept(ExprASTVisitor &) = 0;
 };
 
-class VarAST;
-
-class SimpleVarAST {
-  Symbol id_;
-
-public:
-  SimpleVarAST(const char *id) : id_(id) {}
-  Symbol id() const { return id_; }
-};
-
-class FieldVarAST {
-  uptr<VarAST> var_;
-  Symbol field_;
-
-public:
-  FieldVarAST(VarAST *var, const char *field) : var_(var), field_(field) {}
-  const VarAST &var() const { return *var_; }
-  Symbol field() const { return field_; }
-};
-
-class IndexVarAST {
-  uptr<VarAST> var_;
-  uptr<ExprAST> index_;
-
-public:
-  IndexVarAST(VarAST *var, ExprAST *index) : var_(var), index_(index) {}
-  const VarAST &var() const { return *var_; }
-  const ExprAST &index() const { return *index_; }
-};
-
-class VarASTPrintVisitor {
-  int indent_;
-
-public:
-  VarASTPrintVisitor(int indent) : indent_(indent) {}
-  void operator()(const SimpleVarAST &);
-  void operator()(const FieldVarAST &);
-  void operator()(const IndexVarAST &);
-};
-
-class VarAST {
-public:
-  using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
-  value_type value;
-};
-
-inline void print(const VarAST &var, int indent) {
-  std::visit(VarASTPrintVisitor(indent), var.value);
-}
-
-inline void VarASTPrintVisitor::operator()(const SimpleVarAST &var) {
-  std::printf("%s", var.id().name());
-}
-inline void VarASTPrintVisitor::operator()(const FieldVarAST &var) {
-  print(var.var(), indent_);
-  std::printf(".%s", var.field().name());
-}
-inline void VarASTPrintVisitor::operator()(const IndexVarAST &var) {
-  print(var.var(), indent_);
-  std::printf("[");
-  var.index().print(indent_);
-  std::printf("]");
-}
-
-class VarExprAST : public ExprAST {
+struct VarExprAST : ExprAST {
   uptr<VarAST> var;
 
-public:
   VarExprAST(VarAST *var) : var(var) {}
-  void print(int indent) const override { absyn::print(*var, indent); }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class NilExprAST : public ExprAST {
-public:
-  void print(int) const override { std::printf("nil"); }
+struct NilExprAST : ExprAST {
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class IntExprAST : public ExprAST {
+struct IntExprAST : ExprAST {
   int val;
 
-public:
   IntExprAST(int val) : val(val) {}
-  void print(int) const override { std::printf("%d", val); }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class StringExprAST : public ExprAST {
+struct StringExprAST : ExprAST {
   Symbol val;
 
-public:
   StringExprAST(const char *val) : val(val) {}
-  void print(int) const override { std::printf("%s", val.name()); }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class CallExprAST : public ExprAST {
+struct CallExprAST : ExprAST {
   Symbol fn;
   std::vector<uptr<ExprAST>> args;
 
-public:
   CallExprAST(const char *fn, ExprSeq *args)
       : fn(fn), args(std::move(args->seq)) {
     delete args;
   }
-  void print(int indent) const override {
-    std::printf("%s(", fn.name());
-    const char *sep = "";
-    for (const auto &arg : args) {
-      std::printf("%s", sep);
-      arg->print(indent);
-      sep = ", ";
-    }
-    std::printf(")");
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class OpExprAST : public ExprAST {
+struct OpExprAST : ExprAST {
   uptr<ExprAST> lhs, rhs;
   Op op;
 
-public:
   OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(lhs), rhs(rhs), op(op) {}
-  void print(int indent) const override {
-    const char *op_str[] = {
-        "+", "-", "*", "/", "=", "<>", "<", "<=", ">", ">=", "&", "|",
-    };
-    std::printf("(");
-    // this is a bit arbitrary
-    lhs->print(indent + 2);
-    std::printf("%s", op_str[static_cast<int>(op)]);
-    rhs->print(indent + 2);
-    std::printf(")");
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class RecordExprAST : public ExprAST {
+struct RecordExprAST : ExprAST {
   Symbol type_id;
   std::vector<Field> args;
 
-public:
   RecordExprAST(const char *type_id, FieldSeq *args)
       : type_id(type_id), args(std::move(args->seq)) {
     delete args;
   }
-  void print(int indent) const override {
-    std::printf("%s {", type_id.name());
-    const char *sep = "";
-    for (const auto &field : args) {
-      std::printf("%s%s=", sep, field.first.name());
-      field.second->print(indent);
-      sep = ", ";
-    }
-    std::printf("}");
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class ArrayExprAST : public ExprAST {
+struct ArrayExprAST : ExprAST {
   Symbol type_id;
   uptr<ExprAST> size, init;
 
-public:
   ArrayExprAST(const char *type_id, ExprAST *size, ExprAST *init)
       : type_id(type_id), size(size), init(init) {}
-  void print(int indent) const override {
-    std::printf("%s [", type_id.name());
-    size->print(indent);
-    std::printf("]");
-    std::printf(" of ");
-    init->print(indent);
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class SeqExprAST : public ExprAST {
+struct SeqExprAST : ExprAST {
   std::vector<uptr<ExprAST>> exps;
 
-public:
   SeqExprAST(ExprSeq *exps) : exps(std::move(exps->seq)) { delete exps; }
-  void print(int indent) const override {
-    std::printf("(");
-    const char *sep = "";
-    for (const auto &exp : exps) {
-      std::printf("%s", sep);
-      exp->print(indent);
-      sep = "; ";
-    }
-    std::printf(")");
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class AssignExprAST : public ExprAST {
+struct AssignExprAST : ExprAST {
   uptr<VarAST> var;
   uptr<ExprAST> exp;
 
-public:
   AssignExprAST(VarAST *var, ExprAST *exp) : var(var), exp(exp) {}
-  void print(int indent) const override {
-    absyn::print(*var, indent);
-    std::printf(" := ");
-    exp->print(indent);
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class IfExprAST : public ExprAST {
+struct IfExprAST : ExprAST {
   uptr<ExprAST> cond, then, else_;
 
-public:
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
       : cond(cond), then(then), else_(else_) {}
-  void print(int indent) const override {
-    std::printf("if ");
-    cond->print(indent);
-    std::printf(" then ");
-    then->print(indent);
-    if (else_) {
-      std::printf(" else ");
-      else_->print(indent);
-    }
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class WhileExprAST : public ExprAST {
+struct WhileExprAST : ExprAST {
   uptr<ExprAST> cond, body;
 
-public:
   WhileExprAST(ExprAST *cond, ExprAST *body) : cond(cond), body(body) {}
-  void print(int indent) const override {
-    std::printf("while ");
-    cond->print(indent);
-    std::printf(" do ");
-    body->print(indent);
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class ForExprAST : public ExprAST {
+struct ForExprAST : ExprAST {
   Symbol var;
   uptr<ExprAST> lo, hi, body;
   bool escape{true};
 
-public:
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
       : var(var), lo(lo), hi(hi), body(body) {}
-  void print(int indent) const override {
-    std::printf("for %s := ", var.name());
-    lo->print(indent);
-    std::printf(" to ");
-    hi->print(indent);
-    std::printf(" do ");
-    body->print(indent);
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class BreakExprAST : public ExprAST {
-  void print(int) const override { std::printf("break"); }
+struct BreakExprAST : ExprAST {
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class DeclAST {
-public:
-  virtual ~DeclAST() = default;
-  virtual void print(int) = 0;
-};
-
-class LetExprAST : public ExprAST {
+struct LetExprAST : ExprAST {
   std::vector<uptr<DeclAST>> decs;
   uptr<ExprAST> exp;
 
-public:
   LetExprAST(DeclSeq *decs, ExprAST *exp)
       : decs(std::move(decs->seq)), exp(exp) {
     delete decs;
   }
-  void print(int indent) const override {
-    std::printf("let\n");
-    for (auto &dec : decs) {
-      do_indent(indent + 4);
-      dec->print(indent + 4);
-    }
-    do_indent(indent + 2);
-    std::printf("in\n");
-    if (exp) {
-      do_indent(indent + 4);
-      exp->print(indent + 4);
-      std::printf("\n");
-    }
-    do_indent(indent);
-    std::printf("end\n");
-  }
+  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class Ty;
-
-class NameTy {
-  Symbol type_id_;
-
-public:
-  NameTy(const char *id) : type_id_(id) {}
-  Symbol type_id() const { return type_id_; }
+struct Ty {
+  virtual ~Ty() = default;
+  virtual void accept(TyVisitor &) = 0;
 };
 
-class RecordTy {
-  std::vector<FieldTy> fields_;
+struct NameTy : Ty {
+  Symbol type_id;
 
-public:
-  RecordTy(FieldTySeq *fields) : fields_(std::move(fields->seq)) {
+  NameTy(const char *id) : type_id(id) {}
+  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
+};
+
+struct RecordTy : Ty {
+  std::vector<FieldTy> fields;
+
+  RecordTy(FieldTySeq *fields) : fields(std::move(fields->seq)) {
     delete fields;
   }
-  const auto &fields() const { return fields_; }
+  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class ArrayTy {
-  Symbol type_id_;
+struct ArrayTy : Ty {
+  Symbol type_id;
 
-public:
-  ArrayTy(const char *id) : type_id_(id) {}
-  Symbol type_id() const { return type_id_; }
+  ArrayTy(const char *id) : type_id(id) {}
+  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class TyPrintVisitor {
-  int indent_;
-
-public:
-  TyPrintVisitor(int indent) : indent_(indent) {}
-  void operator()(const NameTy &);
-  void operator()(const RecordTy &);
-  void operator()(const ArrayTy &);
+struct DeclAST {
+  virtual ~DeclAST() = default;
+  virtual void accept(DeclASTVisitor &) = 0;
 };
 
-class Ty {
-public:
-  using value_type = std::variant<NameTy, RecordTy, ArrayTy>;
-  value_type value;
-};
-
-inline void print(const Ty &ty, int indent) {
-  std::visit(TyPrintVisitor(indent), ty.value);
-}
-
-inline void TyPrintVisitor::operator()(const NameTy &ty) {
-  std::printf("%s", ty.type_id().name());
-}
-inline void TyPrintVisitor::operator()(const RecordTy &ty) {
-  std::printf("{");
-  const char *sep = "";
-  for (const auto &field : ty.fields()) {
-    std::printf("%s%s: %s", sep, field.name.name(), field.type_id.name());
-    sep = ", ";
-  }
-  std::printf("}");
-}
-inline void TyPrintVisitor::operator()(const ArrayTy &ty) {
-  std::printf("array of %s", ty.type_id().name());
-}
-
-class TypeDeclAST : public DeclAST {
+struct TypeDeclAST : DeclAST {
   std::vector<Type> types;
 
-public:
   TypeDeclAST() = default;
   void AddType(Type *type) {
     types.push_back(std::move(*type));
     delete type;
   }
-  void print(int indent) override {
-    bool needs_indent = false;
-    for (auto &type : types) {
-      if (needs_indent)
-        do_indent(indent);
-      std::printf("type %s = ", type.first.name());
-      absyn::print(*type.second, indent);
-      std::printf("\n");
-      needs_indent = true;
-    }
-  }
+  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class VarDeclAST : public DeclAST {
+struct VarDeclAST : DeclAST {
   Symbol name, type_id;
   bool escape{true};
   uptr<ExprAST> init;
 
-public:
   VarDeclAST(const char *name, const char *type_id, ExprAST *init)
       : name(name), type_id(type_id), init(init) {}
-  void print(int indent) override {
-    std::printf("var %s", name.name());
-    if (type_id)
-      std::printf(": %s", type_id.name());
-    std::printf(" := ");
-    init->print(indent);
-    std::printf("\n");
-  }
+  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-class FundecTy {
+struct FundecTy {
   Symbol name;
   std::vector<FieldTy> params;
   Symbol result;
   uptr<ExprAST> body;
 
-public:
   FundecTy(const char *name, FieldTySeq *params, const char *result,
            ExprAST *body)
       : name(name), params(std::move(params->seq)), result(result), body(body) {
     delete params;
   }
-  void print(int indent) {
-    std::printf("function %s(", name.name());
-    const char *sep = "";
-    for (const auto &param : params) {
-      std::printf("%s%s: %s", sep, param.name.name(), param.type_id.name());
-      sep = ", ";
-    }
-    std::printf(")");
-    if (result)
-      std::printf(" : %s", result.name());
-    std::printf(" =\n");
-    body->print(indent + 2);
-  }
+  void print(int indent);
 };
 
-class FuncDeclAST : public DeclAST {
+struct FuncDeclAST : DeclAST {
   std::vector<FundecTy> decls;
 
-public:
   FuncDeclAST() = default;
   void AddFunc(FundecTy *decl) {
     decls.push_back(std::move(*decl));
     delete decl;
   }
-  void print(int indent) override {
-    for (auto &decl : decls) {
-      decl.print(indent);
-      std::printf("\n");
-    }
-  }
+  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
-
-inline void do_indent(int indent) {
-  for (int i = 0; i < indent; i++)
-    std::printf(" ");
-}
 
 } // namespace absyn
 #endif
