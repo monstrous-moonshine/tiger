@@ -13,6 +13,7 @@ uptr<ExprAST> parse_result;
 namespace yy {
 ExprAST *expseq_to_expr(ExprSeq *);
 }
+using std::make_unique;
 %}
 
 %require "3.2"
@@ -38,9 +39,7 @@ ExprAST *expseq_to_expr(ExprSeq *);
 %nterm <as.field> field
 %nterm <as.exps> expseq exps argseq args
 %nterm <as.decls> decs
-%nterm <as.decl> dec vardec
-%nterm <as.tydecs> tydecs
-%nterm <as.fundecs> fundecs
+%nterm <as.decl> dec vardec tydecs fundecs
 %nterm <as.tydec> tydec
 %nterm <as.ty> ty
 %nterm <as.tyfields> tyfieldseq tyfields
@@ -65,11 +64,11 @@ exp:	op_exp
 assign_exp:
 	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
 	;
-lvalue: ID				{ $$ = new SimpleVarAST($1); }
+lvalue: ID				{ $$ = new VarAST{make_unique<SimpleVarAST>($1)}; }
 	|
-	lvalue '.' ID			{ $$ = new FieldVarAST($1, $3); }
+	lvalue '.' ID			{ $$ = new VarAST{make_unique<FieldVarAST>($1, $3)}; }
 	|
-	lvalue '[' op_exp ']'		{ $$ = new IndexVarAST($1, $3); }
+	lvalue '[' op_exp ']'		{ $$ = new VarAST{make_unique<IndexVarAST>($1, $3)}; }
 	;
 op_exp:
 	logical_exp
@@ -176,17 +175,17 @@ dec:	tydecs
 	|
 	fundecs
 	;
-tydecs: tydec 				{ $$ = new TypeDeclAST(); $$->AddType($1); }
+tydecs: tydec 				{ $$ = new DeclAST{make_unique<TypeDeclAST>()}; std::get<uptr<TypeDeclAST>>(*$$)->AddType($1); }
 	|
-	tydecs tydec 			{ $$ = $1; $$->AddType($2); }
+	tydecs tydec 			{ $$ = $1; std::get<uptr<TypeDeclAST>>(*$$)->AddType($2); }
 	;
-tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), uptr<Ty>($4)); }
+tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), std::move(*$4)); }
 	;
-ty:	ID 				{ $$ = new NameTy($1); }
+ty:	ID 				{ $$ = new Ty{make_unique<NameTy>($1)}; }
 	|
-	'{' tyfieldseq '}' 		{ $$ = new RecordTy($2); }
+	'{' tyfieldseq '}' 		{ $$ = new Ty{make_unique<RecordTy>($2)}; }
 	|
-	ARRAY OF ID 			{ $$ = new ArrayTy($3); }
+	ARRAY OF ID 			{ $$ = new Ty{make_unique<ArrayTy>($3)}; }
 	;
 tyfieldseq:
 	/* empty */ 			{ $$ = new FieldTySeq(); }
@@ -202,14 +201,14 @@ tyfields:
 tyfield:
 	ID ':' ID 			{ $$ = new FieldTy($1, $3); }
 	;
-vardec:	VAR ID ASSIGN op_exp 		{ $$ = new VarDeclAST($2, nullptr, $4); }
+vardec:	VAR ID ASSIGN op_exp 		{ $$ = new DeclAST{make_unique<VarDeclAST>($2, nullptr, $4)}; }
 	|
-	VAR ID ':' ID ASSIGN op_exp 	{ $$ = new VarDeclAST($2, $4, $6); }
+	VAR ID ':' ID ASSIGN op_exp 	{ $$ = new DeclAST{make_unique<VarDeclAST>($2, $4, $6)}; }
 	;
 fundecs:
-	fundec 				{ $$ = new FuncDeclAST(); $$->AddFunc($1); }
+	fundec 				{ $$ = new DeclAST{make_unique<FuncDeclAST>()}; std::get<uptr<FuncDeclAST>>(*$$)->AddFunc($1); }
 	|
-	fundecs fundec 			{ $$ = $1; $$->AddFunc($2);
+	fundecs fundec 			{ $$ = $1; std::get<uptr<FuncDeclAST>>(*$$)->AddFunc($2);
 	}
 	;
 fundec: FUNC ID '(' tyfieldseq ')' '=' op_exp

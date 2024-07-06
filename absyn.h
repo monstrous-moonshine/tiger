@@ -10,9 +10,7 @@ template <typename T> using uptr = std::unique_ptr<T>;
 
 namespace absyn {
 struct ExprAST;
-struct DeclAST;
 struct ExprSeq;
-struct Ty;
 } // namespace absyn
 
 namespace yy {
@@ -21,9 +19,24 @@ absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
 
 namespace absyn {
 
+struct SimpleVarAST;
+struct FieldVarAST;
+struct IndexVarAST;
+using VarAST = std::variant<uptr<SimpleVarAST>, uptr<FieldVarAST>, uptr<IndexVarAST>>;
+
+struct NameTy;
+struct RecordTy;
+struct ArrayTy;
+using Ty = std::variant<uptr<NameTy>, uptr<RecordTy>, uptr<ArrayTy>>;
+
+struct TypeDeclAST;
+struct VarDeclAST;
+struct FuncDeclAST;
+using DeclAST = std::variant<uptr<TypeDeclAST>, uptr<VarDeclAST>, uptr<FuncDeclAST>>;
+
 using symbol::Symbol;
 using Field = std::pair<Symbol, uptr<ExprAST>>;
-using Type = std::pair<Symbol, uptr<Ty>>;
+using Type = std::pair<Symbol, Ty>;
 
 enum class Op : int {
   kPlus,
@@ -61,12 +74,12 @@ public:
 };
 
 class DeclSeq {
-  std::vector<uptr<DeclAST>> seq;
+  std::vector<DeclAST> seq;
   friend class LetExprAST;
 
 public:
   DeclSeq() = default;
-  void AddDecl(DeclAST *decl) { seq.push_back(uptr<DeclAST>(decl)); }
+  void AddDecl(DeclAST *decl) { seq.push_back(std::move(*decl)); }
 };
 
 class FieldSeq {
@@ -94,18 +107,6 @@ public:
   }
 };
 // }}} Temporary classes for AST building convenience
-
-struct SimpleVarAST;
-struct FieldVarAST;
-struct IndexVarAST;
-
-class VarASTVisitor {
-public:
-  virtual ~VarASTVisitor() = default;
-  virtual void visit(SimpleVarAST &) = 0;
-  virtual void visit(FieldVarAST &) = 0;
-  virtual void visit(IndexVarAST &) = 0;
-};
 
 struct VarExprAST;
 struct NilExprAST;
@@ -143,22 +144,6 @@ public:
   virtual void visit(LetExprAST &) = 0;
 };
 
-struct NameTy;
-struct RecordTy;
-struct ArrayTy;
-
-class TyVisitor {
-public:
-  virtual ~TyVisitor() = default;
-  virtual void visit(NameTy &) = 0;
-  virtual void visit(RecordTy &) = 0;
-  virtual void visit(ArrayTy &) = 0;
-};
-
-struct TypeDeclAST;
-struct VarDeclAST;
-struct FuncDeclAST;
-
 class DeclASTVisitor {
 public:
   virtual ~DeclASTVisitor() = default;
@@ -167,32 +152,24 @@ public:
   virtual void visit(FuncDeclAST &) = 0;
 };
 
-struct VarAST {
-  virtual ~VarAST() = default;
-  virtual void accept(VarASTVisitor &) = 0;
-};
-
-struct SimpleVarAST : VarAST {
+struct SimpleVarAST {
   Symbol id;
 
   SimpleVarAST(const char *id) : id(id) {}
-  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct FieldVarAST : VarAST {
-  uptr<VarAST> var;
+struct FieldVarAST {
+  VarAST var;
   Symbol field;
 
-  FieldVarAST(VarAST *var, const char *field) : var(var), field(field) {}
-  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
+  FieldVarAST(VarAST *var, const char *field) : var(std::move(*var)), field(field) {}
 };
 
-struct IndexVarAST : VarAST {
-  uptr<VarAST> var;
+struct IndexVarAST {
+  VarAST var;
   uptr<ExprAST> index;
 
-  IndexVarAST(VarAST *var, ExprAST *index) : var(var), index(index) {}
-  void accept(VarASTVisitor &visitor) override { visitor.visit(*this); }
+  IndexVarAST(VarAST *var, ExprAST *index) : var(std::move(*var)), index(index) {}
 };
 
 struct ExprAST {
@@ -201,9 +178,9 @@ struct ExprAST {
 };
 
 struct VarExprAST : ExprAST {
-  uptr<VarAST> var;
+  VarAST var;
 
-  VarExprAST(VarAST *var) : var(var) {}
+  VarExprAST(VarAST *var) : var(std::move(*var)) {}
   void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
@@ -272,10 +249,10 @@ struct SeqExprAST : ExprAST {
 };
 
 struct AssignExprAST : ExprAST {
-  uptr<VarAST> var;
+  VarAST var;
   uptr<ExprAST> exp;
 
-  AssignExprAST(VarAST *var, ExprAST *exp) : var(var), exp(exp) {}
+  AssignExprAST(VarAST *var, ExprAST *exp) : var(std::move(*var)), exp(exp) {}
   void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
@@ -309,7 +286,7 @@ struct BreakExprAST : ExprAST {
 };
 
 struct LetExprAST : ExprAST {
-  std::vector<uptr<DeclAST>> decs;
+  std::vector<DeclAST> decs;
   uptr<ExprAST> exp;
 
   LetExprAST(DeclSeq *decs, ExprAST *exp)
@@ -319,40 +296,27 @@ struct LetExprAST : ExprAST {
   void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct Ty {
-  virtual ~Ty() = default;
-  virtual void accept(TyVisitor &) = 0;
-};
-
-struct NameTy : Ty {
+struct NameTy {
   Symbol type_id;
 
   NameTy(const char *id) : type_id(id) {}
-  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct RecordTy : Ty {
+struct RecordTy {
   std::vector<FieldTy> fields;
 
   RecordTy(FieldTySeq *fields) : fields(std::move(fields->seq)) {
     delete fields;
   }
-  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct ArrayTy : Ty {
+struct ArrayTy {
   Symbol type_id;
 
   ArrayTy(const char *id) : type_id(id) {}
-  void accept(TyVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct DeclAST {
-  virtual ~DeclAST() = default;
-  virtual void accept(DeclASTVisitor &) = 0;
-};
-
-struct TypeDeclAST : DeclAST {
+struct TypeDeclAST {
   std::vector<Type> types;
 
   TypeDeclAST() = default;
@@ -360,17 +324,15 @@ struct TypeDeclAST : DeclAST {
     types.push_back(std::move(*type));
     delete type;
   }
-  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct VarDeclAST : DeclAST {
+struct VarDeclAST {
   Symbol name, type_id;
   bool escape{true};
   uptr<ExprAST> init;
 
   VarDeclAST(const char *name, const char *type_id, ExprAST *init)
       : name(name), type_id(type_id), init(init) {}
-  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct FundecTy {
@@ -387,7 +349,7 @@ struct FundecTy {
   void print(int indent);
 };
 
-struct FuncDeclAST : DeclAST {
+struct FuncDeclAST {
   std::vector<FundecTy> decls;
 
   FuncDeclAST() = default;
@@ -395,7 +357,6 @@ struct FuncDeclAST : DeclAST {
     decls.push_back(std::move(*decl));
     delete decl;
   }
-  void accept(DeclASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 } // namespace absyn

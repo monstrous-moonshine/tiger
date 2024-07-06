@@ -9,17 +9,17 @@ inline void do_indent(int indent) {
     std::printf(" ");
 }
 
-class VarASTPrintVisitor : public VarASTVisitor {
+class VarASTPrintVisitor {
   int indent_;
 
 public:
   VarASTPrintVisitor(int indent) : indent_(indent) {}
-  void visit(SimpleVarAST &var) override { std::printf("%s", var.id.name()); }
-  void visit(FieldVarAST &var) override {
-    var.var->accept(*this);
-    std::printf(".%s", var.field.name());
+  void operator()(uptr<SimpleVarAST> &var) { std::printf("%s", var->id.name()); }
+  void operator()(uptr<FieldVarAST> &var) {
+    std::visit(VarASTPrintVisitor(indent_), var->var);
+    std::printf(".%s", var->field.name());
   }
-  void visit(IndexVarAST &var) override;
+  void operator()(uptr<IndexVarAST> &var);
 };
 
 class ExprASTPrintVisitor : public ExprASTVisitor {
@@ -29,8 +29,7 @@ public:
   ExprASTPrintVisitor(int indent) : indent_(indent) {}
   virtual ~ExprASTPrintVisitor() = default;
   void visit(VarExprAST &e) override {
-    VarASTPrintVisitor v(indent_);
-    e.var->accept(v);
+    std::visit(VarASTPrintVisitor(indent_), e.var);
   }
   void visit(NilExprAST &) override { std::printf("nil"); }
   void visit(IntExprAST &e) override { std::printf("%d", e.val); }
@@ -89,8 +88,7 @@ public:
     std::printf(")");
   }
   void visit(AssignExprAST &e) override {
-    VarASTPrintVisitor v(indent_);
-    e.var->accept(v);
+    std::visit(VarASTPrintVisitor(indent_), e.var);
     std::printf(" := ");
     ExprASTPrintVisitor ev(indent_);
     e.exp->accept(ev);
@@ -126,62 +124,62 @@ public:
   void visit(LetExprAST &e) override;
 };
 
-inline void VarASTPrintVisitor::visit(IndexVarAST &var) {
-  var.var->accept(*this);
+inline void VarASTPrintVisitor::operator()(uptr<IndexVarAST> &var) {
+  std::visit(VarASTPrintVisitor(indent_), var->var);
   std::printf("[");
   ExprASTPrintVisitor v(indent_);
-  var.index->accept(v);
+  var->index->accept(v);
   std::printf("]");
 }
 
-class TyPrintVisitor : public TyVisitor {
+class TyPrintVisitor {
   int indent_;
 
 public:
   TyPrintVisitor(int indent) : indent_(indent) {}
-  void visit(NameTy &ty) override { std::printf("%s", ty.type_id.name()); }
-  void visit(RecordTy &ty) override {
+  void operator()(uptr<NameTy> &ty) { std::printf("%s", ty->type_id.name()); }
+  void operator()(uptr<RecordTy> &ty) {
     std::printf("{");
     const char *sep = "";
-    for (const auto &field : ty.fields) {
+    for (const auto &field : ty->fields) {
       std::printf("%s%s: %s", sep, field.name.name(), field.type_id.name());
       sep = ", ";
     }
     std::printf("}");
   }
-  void visit(ArrayTy &ty) override {
-    std::printf("array of %s", ty.type_id.name());
+  void operator()(uptr<ArrayTy> &ty) {
+    std::printf("array of %s", ty->type_id.name());
   }
 };
 
-class DeclASTPrintVisitor : public DeclASTVisitor {
+class DeclASTPrintVisitor {
   int indent_;
 
 public:
   DeclASTPrintVisitor(int indent) : indent_(indent) {}
-  void visit(TypeDeclAST &decl) override {
+  void operator()(uptr<TypeDeclAST> &decl) {
     bool needs_indent = false;
-    for (auto &type : decl.types) {
+    for (auto &type : decl->types) {
       if (needs_indent)
         do_indent(indent_);
       std::printf("type %s = ", type.first.name());
       TyPrintVisitor v(indent_);
-      type.second->accept(v);
+      std::visit(TyPrintVisitor(indent_), type.second);
       std::printf("\n");
       needs_indent = true;
     }
   }
-  void visit(VarDeclAST &decl) override {
-    std::printf("var %s", decl.name.name());
-    if (decl.type_id)
-      std::printf(": %s", decl.type_id.name());
+  void operator()(uptr<VarDeclAST> &decl) {
+    std::printf("var %s", decl->name.name());
+    if (decl->type_id)
+      std::printf(": %s", decl->type_id.name());
     std::printf(" := ");
     ExprASTPrintVisitor v(indent_);
-    decl.init->accept(v);
+    decl->init->accept(v);
     std::printf("\n");
   }
-  void visit(FuncDeclAST &decl) override {
-    for (auto &decl_ : decl.decls) {
+  void operator()(uptr<FuncDeclAST> &decl) {
+    for (auto &decl_ : decl->decls) {
       decl_.print(indent_);
       std::printf("\n");
     }
@@ -192,8 +190,7 @@ inline void ExprASTPrintVisitor::visit(LetExprAST &e) {
   std::printf("let\n");
   for (auto &dec : e.decs) {
     do_indent(indent_ + 4);
-    DeclASTPrintVisitor v(indent_ + 4);
-    dec->accept(v);
+    std::visit(DeclASTPrintVisitor(indent_ + 4), dec);
   }
   do_indent(indent_ + 2);
   std::printf("in\n");
