@@ -135,11 +135,11 @@ public:
   const ExprAST &index() const { return *index_; }
 };
 
-class PrintVarAST {
+class VarASTPrintVisitor {
   int indent_;
 
 public:
-  PrintVarAST(int indent) : indent_(indent) {}
+  VarASTPrintVisitor(int indent) : indent_(indent) {}
   void operator()(const SimpleVarAST &);
   void operator()(const FieldVarAST &);
   void operator()(const IndexVarAST &);
@@ -152,17 +152,17 @@ public:
 };
 
 inline void print(const VarAST &var, int indent) {
-  std::visit(PrintVarAST(indent), var.value);
+  std::visit(VarASTPrintVisitor(indent), var.value);
 }
 
-inline void PrintVarAST::operator()(const SimpleVarAST &var) {
+inline void VarASTPrintVisitor::operator()(const SimpleVarAST &var) {
   std::printf("%s", var.id().name());
 }
-inline void PrintVarAST::operator()(const FieldVarAST &var) {
+inline void VarASTPrintVisitor::operator()(const FieldVarAST &var) {
   print(var.var(), indent_);
   std::printf(".%s", var.field().name());
 }
-inline void PrintVarAST::operator()(const IndexVarAST &var) {
+inline void VarASTPrintVisitor::operator()(const IndexVarAST &var) {
   print(var.var(), indent_);
   std::printf("[");
   var.index().print(indent_);
@@ -419,11 +419,11 @@ public:
   Symbol type_id() const { return type_id_; }
 };
 
-class PrintTy {
+class TyPrintVisitor {
   int indent_;
 
 public:
-  PrintTy(int indent) : indent_(indent) {}
+  TyPrintVisitor(int indent) : indent_(indent) {}
   void operator()(const NameTy &);
   void operator()(const RecordTy &);
   void operator()(const ArrayTy &);
@@ -436,13 +436,13 @@ public:
 };
 
 inline void print(const Ty &ty, int indent) {
-  std::visit(PrintTy(indent), ty.value);
+  std::visit(TyPrintVisitor(indent), ty.value);
 }
 
-inline void PrintTy::operator()(const NameTy &ty) {
+inline void TyPrintVisitor::operator()(const NameTy &ty) {
   std::printf("%s", ty.type_id().name());
 }
-inline void PrintTy::operator()(const RecordTy &ty) {
+inline void TyPrintVisitor::operator()(const RecordTy &ty) {
   std::printf("{");
   const char *sep = "";
   for (const auto &field : ty.fields()) {
@@ -451,7 +451,7 @@ inline void PrintTy::operator()(const RecordTy &ty) {
   }
   std::printf("}");
 }
-inline void PrintTy::operator()(const ArrayTy &ty) {
+inline void TyPrintVisitor::operator()(const ArrayTy &ty) {
   std::printf("array of %s", ty.type_id().name());
 }
 
