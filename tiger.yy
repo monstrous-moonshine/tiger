@@ -53,16 +53,16 @@ exp:	op_exp
 	|
 	assign_exp
 	|
-	IF op_exp THEN exp END		{ $$ = new IfExprAST($2, $4, nullptr); }
+	IF op_exp THEN exp END		{ $$ = new ExprAST{make_unique<IfExprAST>($2, $4, nullptr)}; }
 	|
-	WHILE op_exp DO exp END		{ $$ = new WhileExprAST($2, $4); }
+	WHILE op_exp DO exp END		{ $$ = new ExprAST{make_unique<WhileExprAST>($2, $4)}; }
 	|
-	FOR ID ASSIGN op_exp TO op_exp DO exp END	{ $$ = new ForExprAST($2, $4, $6, $8); }
+	FOR ID ASSIGN op_exp TO op_exp DO exp END	{ $$ = new ExprAST{make_unique<ForExprAST>($2, $4, $6, $8)}; }
 	|
-	BREAK				{ $$ = new BreakExprAST(); }
+	BREAK				{ $$ = new ExprAST{make_unique<BreakExprAST>()}; }
 	;
 assign_exp:
-	lvalue ASSIGN op_exp		{ $$ = new AssignExprAST($1, $3); }
+	lvalue ASSIGN op_exp		{ $$ = new ExprAST{make_unique<AssignExprAST>($1, $3)}; }
 	;
 lvalue: ID				{ $$ = new VarAST{make_unique<SimpleVarAST>($1)}; }
 	|
@@ -73,67 +73,67 @@ lvalue: ID				{ $$ = new VarAST{make_unique<SimpleVarAST>($1)}; }
 op_exp:
 	logical_exp
 	|
-	op_exp '&' logical_exp		{ $$ = new OpExprAST($1, $3, Op::kAnd); }
+	op_exp '&' logical_exp		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kAnd)}; }
 	|
-	op_exp '|' logical_exp		{ $$ = new OpExprAST($1, $3, Op::kOr); }
+	op_exp '|' logical_exp		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kOr)}; }
 	;
 logical_exp:
 	term
 	|
-	logical_exp '=' term		{ $$ = new OpExprAST($1, $3, Op::kEq); }
+	logical_exp '=' term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kEq)}; }
 	|
-	logical_exp NEQ term		{ $$ = new OpExprAST($1, $3, Op::kNeq); }
+	logical_exp NEQ term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kNeq)}; }
 	|
-	logical_exp '<' term		{ $$ = new OpExprAST($1, $3, Op::kLt); }
+	logical_exp '<' term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kLt)}; }
 	|
-	logical_exp LE	term		{ $$ = new OpExprAST($1, $3, Op::kLe); }
+	logical_exp LE	term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kLe)}; }
 	|
-	logical_exp '>' term		{ $$ = new OpExprAST($1, $3, Op::kGt); }
+	logical_exp '>' term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kGt)}; }
 	|
-	logical_exp GE	term		{ $$ = new OpExprAST($1, $3, Op::kGe); }
+	logical_exp GE	term		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kGe)}; }
 	;
 term:	factor
 	|
-	term '+' factor			{ $$ = new OpExprAST($1, $3, Op::kPlus); }
+	term '+' factor			{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kPlus)}; }
 	|
-	term '-' factor			{ $$ = new OpExprAST($1, $3, Op::kMinus); }
+	term '-' factor			{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kMinus)}; }
 	;
 factor: unary
 	|
-	factor '*' unary		{ $$ = new OpExprAST($1, $3, Op::kMul); }
+	factor '*' unary		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kMul)}; }
 	|
-	factor '/' unary		{ $$ = new OpExprAST($1, $3, Op::kDiv); }
+	factor '/' unary		{ $$ = new ExprAST{make_unique<OpExprAST>($1, $3, Op::kDiv)}; }
 	;
 unary:	primary
 	|
-	'-' unary			{ $$ = new OpExprAST(new IntExprAST(0), $2, Op::kMinus); }
+	'-' unary			{ $$ = new ExprAST{make_unique<OpExprAST>(new IntExprAST(0), $2, Op::kMinus)}; }
 	;
 primary:
-	IF op_exp THEN exp ELSE exp END { $$ = new IfExprAST($2, $4, $6); }
+	IF op_exp THEN exp ELSE exp END { $$ = new ExprAST{make_unique<IfExprAST>($2, $4, $6)}; }
 	|
-	ID '(' argseq ')'		{ $$ = new CallExprAST($1, $3); }
+	ID '(' argseq ')'		{ $$ = new ExprAST{make_unique<CallExprAST>($1, $3)}; }
 	|
 	'(' expseq ')'			{ $$ = expseq_to_expr($2); }
 	|
-	LET decs IN expseq END 		{ $$ = new LetExprAST($2, expseq_to_expr($4)); }
+	LET decs IN expseq END 		{ $$ = new ExprAST{make_unique<LetExprAST>($2, expseq_to_expr($4))}; }
 	|
-	lvalue				{ $$ = new VarExprAST($1); }
+	lvalue				{ $$ = new ExprAST{make_unique<VarExprAST>($1)}; }
 	|
 	record_exp
 	|
 	array_exp
 	|
-	INT				{ $$ = new IntExprAST($1); }
+	INT				{ $$ = new ExprAST{make_unique<IntExprAST>($1)}; }
 	|
-	STR				{ $$ = new StringExprAST($1); }
+	STR				{ $$ = new ExprAST{make_unique<StringExprAST>($1)}; }
 	|
-	NIL				{ $$ = new NilExprAST(); }
+	NIL				{ $$ = new ExprAST{make_unique<NilExprAST>()}; }
 	;
 record_exp:
-	NEW ID '{' fieldseq '}'		{ $$ = new RecordExprAST($2, $4); }
+	NEW ID '{' fieldseq '}'		{ $$ = new ExprAST{make_unique<RecordExprAST>($2, $4)}; }
 	;
 array_exp:
-	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ArrayExprAST($2, $4, $7); }
+	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ExprAST{make_unique<ArrayExprAST>($2, $4, $7)}; }
 	;
 expseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
@@ -233,10 +233,10 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
     case 1: {
 	auto *ptr = exps->seq[0].release();
 	delete exps;
-	return ptr;
+	return new ExprAST(std::move(*ptr));
     }
     default:
-	return new SeqExprAST(exps);
+	return new ExprAST{make_unique<SeqExprAST>(exps)};
     }
 }
 

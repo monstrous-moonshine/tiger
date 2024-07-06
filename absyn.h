@@ -1,42 +1,18 @@
 #ifndef ABSYN_H
 #define ABSYN_H
+#include "absyn_common.h"
 #include "symbol.h"
 #include <cstdio>
 #include <memory>
 #include <variant>
 #include <vector>
 
-template <typename T> using uptr = std::unique_ptr<T>;
-
-namespace absyn {
-struct ExprAST;
-struct ExprSeq;
-} // namespace absyn
-
 namespace yy {
 absyn::ExprAST *expseq_to_expr(absyn::ExprSeq *);
 }
 
 namespace absyn {
-
-struct SimpleVarAST;
-struct FieldVarAST;
-struct IndexVarAST;
-using VarAST = std::variant<uptr<SimpleVarAST>, uptr<FieldVarAST>, uptr<IndexVarAST>>;
-
-struct NameTy;
-struct RecordTy;
-struct ArrayTy;
-using Ty = std::variant<uptr<NameTy>, uptr<RecordTy>, uptr<ArrayTy>>;
-
-struct TypeDeclAST;
-struct VarDeclAST;
-struct FuncDeclAST;
-using DeclAST = std::variant<uptr<TypeDeclAST>, uptr<VarDeclAST>, uptr<FuncDeclAST>>;
-
 using symbol::Symbol;
-using Field = std::pair<Symbol, uptr<ExprAST>>;
-using Type = std::pair<Symbol, Ty>;
 
 enum class Op : int {
   kPlus,
@@ -108,50 +84,6 @@ public:
 };
 // }}} Temporary classes for AST building convenience
 
-struct VarExprAST;
-struct NilExprAST;
-struct IntExprAST;
-struct StringExprAST;
-struct CallExprAST;
-struct OpExprAST;
-struct RecordExprAST;
-struct ArrayExprAST;
-struct SeqExprAST;
-struct AssignExprAST;
-struct IfExprAST;
-struct WhileExprAST;
-struct ForExprAST;
-struct BreakExprAST;
-struct LetExprAST;
-
-class ExprASTVisitor {
-public:
-  virtual ~ExprASTVisitor() = default;
-  virtual void visit(VarExprAST &) = 0;
-  virtual void visit(NilExprAST &) = 0;
-  virtual void visit(IntExprAST &) = 0;
-  virtual void visit(StringExprAST &) = 0;
-  virtual void visit(CallExprAST &) = 0;
-  virtual void visit(OpExprAST &) = 0;
-  virtual void visit(RecordExprAST &) = 0;
-  virtual void visit(ArrayExprAST &) = 0;
-  virtual void visit(SeqExprAST &) = 0;
-  virtual void visit(AssignExprAST &) = 0;
-  virtual void visit(IfExprAST &) = 0;
-  virtual void visit(WhileExprAST &) = 0;
-  virtual void visit(ForExprAST &) = 0;
-  virtual void visit(BreakExprAST &) = 0;
-  virtual void visit(LetExprAST &) = 0;
-};
-
-class DeclASTVisitor {
-public:
-  virtual ~DeclASTVisitor() = default;
-  virtual void visit(TypeDeclAST &) = 0;
-  virtual void visit(VarDeclAST &) = 0;
-  virtual void visit(FuncDeclAST &) = 0;
-};
-
 struct SimpleVarAST {
   Symbol id;
 
@@ -162,44 +94,36 @@ struct FieldVarAST {
   VarAST var;
   Symbol field;
 
-  FieldVarAST(VarAST *var, const char *field) : var(std::move(*var)), field(field) {}
+  FieldVarAST(VarAST *var, const char *field)
+      : var(std::move(*var)), field(field) {}
 };
 
 struct IndexVarAST {
   VarAST var;
   uptr<ExprAST> index;
 
-  IndexVarAST(VarAST *var, ExprAST *index) : var(std::move(*var)), index(index) {}
-};
-
-struct ExprAST {
-  virtual ~ExprAST() = default;
-  virtual void accept(ExprASTVisitor &) = 0;
+  IndexVarAST(VarAST *var, ExprAST *index)
+      : var(std::move(*var)), index(index) {}
 };
 
 struct VarExprAST : ExprAST {
   VarAST var;
 
   VarExprAST(VarAST *var) : var(std::move(*var)) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct NilExprAST : ExprAST {
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
-};
+struct NilExprAST : ExprAST {};
 
 struct IntExprAST : ExprAST {
   int val;
 
   IntExprAST(int val) : val(val) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct StringExprAST : ExprAST {
   Symbol val;
 
   StringExprAST(const char *val) : val(val) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct CallExprAST : ExprAST {
@@ -210,7 +134,6 @@ struct CallExprAST : ExprAST {
       : fn(fn), args(std::move(args->seq)) {
     delete args;
   }
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct OpExprAST : ExprAST {
@@ -218,7 +141,6 @@ struct OpExprAST : ExprAST {
   Op op;
 
   OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(lhs), rhs(rhs), op(op) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct RecordExprAST : ExprAST {
@@ -229,7 +151,6 @@ struct RecordExprAST : ExprAST {
       : type_id(type_id), args(std::move(args->seq)) {
     delete args;
   }
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct ArrayExprAST : ExprAST {
@@ -238,14 +159,12 @@ struct ArrayExprAST : ExprAST {
 
   ArrayExprAST(const char *type_id, ExprAST *size, ExprAST *init)
       : type_id(type_id), size(size), init(init) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct SeqExprAST : ExprAST {
   std::vector<uptr<ExprAST>> exps;
 
   SeqExprAST(ExprSeq *exps) : exps(std::move(exps->seq)) { delete exps; }
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct AssignExprAST : ExprAST {
@@ -253,7 +172,6 @@ struct AssignExprAST : ExprAST {
   uptr<ExprAST> exp;
 
   AssignExprAST(VarAST *var, ExprAST *exp) : var(std::move(*var)), exp(exp) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct IfExprAST : ExprAST {
@@ -261,14 +179,12 @@ struct IfExprAST : ExprAST {
 
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
       : cond(cond), then(then), else_(else_) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct WhileExprAST : ExprAST {
   uptr<ExprAST> cond, body;
 
   WhileExprAST(ExprAST *cond, ExprAST *body) : cond(cond), body(body) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct ForExprAST : ExprAST {
@@ -278,12 +194,9 @@ struct ForExprAST : ExprAST {
 
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
       : var(var), lo(lo), hi(hi), body(body) {}
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
-struct BreakExprAST : ExprAST {
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
-};
+struct BreakExprAST : ExprAST {};
 
 struct LetExprAST : ExprAST {
   std::vector<DeclAST> decs;
@@ -293,7 +206,6 @@ struct LetExprAST : ExprAST {
       : decs(std::move(decs->seq)), exp(exp) {
     delete decs;
   }
-  void accept(ExprASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 struct NameTy {
