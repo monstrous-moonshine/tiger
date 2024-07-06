@@ -140,7 +140,8 @@ struct OpExprAST : ExprAST {
   ExprAST lhs, rhs;
   Op op;
 
-  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op) : lhs(std::move(*lhs)), rhs(std::move(*rhs)), op(op) {}
+  OpExprAST(ExprAST *lhs, ExprAST *rhs, Op op)
+      : lhs(std::move(*lhs)), rhs(std::move(*rhs)), op(op) {}
 };
 
 struct RecordExprAST : ExprAST {
@@ -171,20 +172,23 @@ struct AssignExprAST : ExprAST {
   VarAST var;
   ExprAST exp;
 
-  AssignExprAST(VarAST *var, ExprAST *exp) : var(std::move(*var)), exp(std::move(*exp)) {}
+  AssignExprAST(VarAST *var, ExprAST *exp)
+      : var(std::move(*var)), exp(std::move(*exp)) {}
 };
 
 struct IfExprAST : ExprAST {
   ExprAST cond, then, else_;
 
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
-      : cond(std::move(*cond)), then(std::move(*then)), else_(std::move(*else_)) {}
+      : cond(std::move(*cond)), then(std::move(*then)),
+        else_(std::move(*else_)) {}
 };
 
 struct WhileExprAST : ExprAST {
   ExprAST cond, body;
 
-  WhileExprAST(ExprAST *cond, ExprAST *body) : cond(std::move(*cond)), body(std::move(*body)) {}
+  WhileExprAST(ExprAST *cond, ExprAST *body)
+      : cond(std::move(*cond)), body(std::move(*body)) {}
 };
 
 struct ForExprAST : ExprAST {
@@ -193,7 +197,8 @@ struct ForExprAST : ExprAST {
   bool escape{true};
 
   ForExprAST(const char *var, ExprAST *lo, ExprAST *hi, ExprAST *body)
-      : var(var), lo(std::move(*lo)), hi(std::move(*hi)), body(std::move(*body)) {}
+      : var(var), lo(std::move(*lo)), hi(std::move(*hi)),
+        body(std::move(*body)) {}
 };
 
 struct BreakExprAST : ExprAST {};
@@ -255,7 +260,8 @@ struct FundecTy {
 
   FundecTy(const char *name, FieldTySeq *params, const char *result,
            ExprAST *body)
-      : name(name), params(std::move(params->seq)), result(result), body(std::move(*body)) {
+      : name(name), params(std::move(params->seq)), result(result),
+        body(std::move(*body)) {
     delete params;
   }
   void print(int indent);

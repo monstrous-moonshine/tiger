@@ -14,7 +14,9 @@ class VarASTPrintVisitor {
 
 public:
   VarASTPrintVisitor(int indent) : indent_(indent) {}
-  void operator()(uptr<SimpleVarAST> &var) { std::printf("%s", var->id.name()); }
+  void operator()(uptr<SimpleVarAST> &var) {
+    std::printf("%s", var->id.name());
+  }
   void operator()(uptr<FieldVarAST> &var) {
     std::visit(VarASTPrintVisitor(indent_), var->var);
     std::printf(".%s", var->field.name());
