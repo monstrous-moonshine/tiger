@@ -137,6 +137,7 @@ public:
 
 class PrintVarAST {
   int indent_;
+
 public:
   PrintVarAST(int indent) : indent_(indent) {}
   void operator()(const SimpleVarAST &);
@@ -148,18 +149,21 @@ class VarAST {
 public:
   using value_type = std::variant<SimpleVarAST, FieldVarAST, IndexVarAST>;
   value_type value;
-  void print(int indent) const { std::visit(PrintVarAST(indent), value); }
 };
+
+inline void print(const VarAST &var, int indent) {
+  std::visit(PrintVarAST(indent), var.value);
+}
 
 inline void PrintVarAST::operator()(const SimpleVarAST &var) {
   std::printf("%s", var.id().name());
 }
 inline void PrintVarAST::operator()(const FieldVarAST &var) {
-  var.var().print(indent_);
+  print(var.var(), indent_);
   std::printf(".%s", var.field().name());
 }
 inline void PrintVarAST::operator()(const IndexVarAST &var) {
-  var.var().print(indent_);
+  print(var.var(), indent_);
   std::printf("[");
   var.index().print(indent_);
   std::printf("]");
@@ -170,7 +174,7 @@ class VarExprAST : public ExprAST {
 
 public:
   VarExprAST(VarAST *var) : var(var) {}
-  void print(int indent) const override { var->print(indent); }
+  void print(int indent) const override { absyn::print(*var, indent); }
 };
 
 class NilExprAST : public ExprAST {
@@ -295,7 +299,7 @@ class AssignExprAST : public ExprAST {
 public:
   AssignExprAST(VarAST *var, ExprAST *exp) : var(var), exp(exp) {}
   void print(int indent) const override {
-    var->print(indent);
+    absyn::print(*var, indent);
     std::printf(" := ");
     exp->print(indent);
   }
@@ -417,6 +421,7 @@ public:
 
 class PrintTy {
   int indent_;
+
 public:
   PrintTy(int indent) : indent_(indent) {}
   void operator()(const NameTy &);
@@ -428,8 +433,11 @@ class Ty {
 public:
   using value_type = std::variant<NameTy, RecordTy, ArrayTy>;
   value_type value;
-  void print(int indent) const { std::visit(PrintTy(indent), value); }
 };
+
+inline void print(const Ty &ty, int indent) {
+  std::visit(PrintTy(indent), ty.value);
+}
 
 inline void PrintTy::operator()(const NameTy &ty) {
   std::printf("%s", ty.type_id().name());
@@ -462,7 +470,7 @@ public:
       if (needs_indent)
         do_indent(indent);
       std::printf("type %s = ", type.first.name());
-      type.second->print(indent);
+      absyn::print(*type.second, indent);
       std::printf("\n");
       needs_indent = true;
     }
