@@ -13,7 +13,8 @@ int main() {
   // since we're done with the input, we don't need the lexer any more
   yylex_destroy();
   if (parse_result) {
-    std::visit(absyn::ExprASTPrintVisitor(0), *parse_result);
+    absyn::print(0, *parse_result);
+    std::printf("\n");
   }
   // since we've printed all the symbols, their strings can be freed
   symbol::Symbol::FreeAll();
