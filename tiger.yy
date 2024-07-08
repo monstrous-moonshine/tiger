@@ -36,10 +36,11 @@ ExprAST *expseq_to_expr(ExprSeq *);
 %nonassoc '=' NEQ '<' LE '>' GE
 %left '+' '-'
 %left '*' '/'
+%left UMINUS
 
 %token ARRAY BREAK DO ELSE END FOR FUNC IF IN LET NEW OF THEN TO TYPE VAR WHILE
 
-%nterm <as.exp> exp op_exp assign_exp record_exp array_exp logical_exp term factor unary primary
+%nterm <as.exp> exp op_exp primary
 %nterm <as.var> lvalue
 %nterm <as.fields> fieldseq fields
 %nterm <as.field> field
@@ -47,17 +48,17 @@ ExprAST *expseq_to_expr(ExprSeq *);
 %nterm <as.decls> decs
 %nterm <as.decl> dec vardec tydecs fundecs
 %nterm <as.tydec> tydec
+%nterm <as.fundec> fundec
 %nterm <as.ty> ty
 %nterm <as.tyfields> tyfieldseq tyfields
 %nterm <as.tyfield> tyfield
-%nterm <as.fundec> fundec
 
 %%
-top:	exp				{ parse_result.reset($1); }
+prog:	exp				{ parse_result.reset($1); }
 	;
 exp:	op_exp
 	|
-	assign_exp
+	lvalue ASSIGN exp		{ $$ = new E(AssignExprAST, $1, $3); }
 	|
 	IF exp THEN exp			{ $$ = new E(IfExprAST, $2, $4, nullptr); }
 	|
@@ -69,20 +70,11 @@ exp:	op_exp
 	|
 	LET decs IN expseq END		{ $$ = new E(LetExprAST, $2, expseq_to_expr($4)); }
 	|
-	record_exp
+	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4); }
 	|
-	array_exp
+	NEW ID '[' op_exp ']' OF op_exp	{ $$ = new E(ArrayExprAST, $2, $4, $7); }
 	|
 	BREAK				{ $$ = new E(BreakExprAST, ); }
-	;
-record_exp:
-	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4); }
-	;
-array_exp:
-	NEW ID '[' op_exp ']' OF op_exp	{ $$ = new E(ArrayExprAST, $2, $4, $7); }
-	;
-assign_exp:
-	lvalue ASSIGN exp		{ $$ = new E(AssignExprAST, $1, $3); }
 	;
 lvalue: ID				{ $$ = new V(SimpleVarAST, $1); }
 	|
@@ -90,43 +82,33 @@ lvalue: ID				{ $$ = new V(SimpleVarAST, $1); }
 	|
 	lvalue '[' exp ']'		{ $$ = new V(IndexVarAST, $1, $3); }
 	;
-op_exp:
-	logical_exp
+op_exp: op_exp '&' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd); }
 	|
-	op_exp '&' logical_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd); }
+	op_exp '|' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kOr); }
 	|
-	op_exp '|' logical_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kOr); }
-	;
-logical_exp:
-	term
+	op_exp '=' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kEq); }
 	|
-	logical_exp '=' term		{ $$ = new E(OpExprAST, $1, $3, Op::kEq); }
+	op_exp NEQ op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kNeq); }
 	|
-	logical_exp NEQ term		{ $$ = new E(OpExprAST, $1, $3, Op::kNeq); }
+	op_exp '<' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLt); }
 	|
-	logical_exp '<' term		{ $$ = new E(OpExprAST, $1, $3, Op::kLt); }
+	op_exp LE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLe); }
 	|
-	logical_exp LE	term		{ $$ = new E(OpExprAST, $1, $3, Op::kLe); }
+	op_exp '>' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGt); }
 	|
-	logical_exp '>' term		{ $$ = new E(OpExprAST, $1, $3, Op::kGt); }
+	op_exp GE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGe); }
 	|
-	logical_exp GE	term		{ $$ = new E(OpExprAST, $1, $3, Op::kGe); }
-	;
-term:	factor
+	op_exp '+' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kPlus); }
 	|
-	term '+' factor			{ $$ = new E(OpExprAST, $1, $3, Op::kPlus); }
+	op_exp '-' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMinus); }
 	|
-	term '-' factor			{ $$ = new E(OpExprAST, $1, $3, Op::kMinus); }
-	;
-factor: unary
+	op_exp '*' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMul); }
 	|
-	factor '*' unary		{ $$ = new E(OpExprAST, $1, $3, Op::kMul); }
+	op_exp '/' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kDiv); }
 	|
-	factor '/' unary		{ $$ = new E(OpExprAST, $1, $3, Op::kDiv); }
-	;
-unary:	primary
+	'-' op_exp %prec UMINUS		{ $$ = new E(OpExprAST, new IntExprAST(0), $2, Op::kMinus); }
 	|
-	'-' unary			{ $$ = new E(OpExprAST, new IntExprAST(0), $2, Op::kMinus); }
+	primary
 	;
 primary:
 	ID '(' argseq ')'		{ $$ = new E(CallExprAST, $1, $3); }
