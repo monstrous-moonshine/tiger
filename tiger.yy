@@ -72,7 +72,7 @@ exp:	op_exp
 	|
 	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4); }
 	|
-	NEW ID '[' op_exp ']' OF op_exp	{ $$ = new E(ArrayExprAST, $2, $4, $7); }
+	NEW ID '[' exp ']' OF exp	{ $$ = new E(ArrayExprAST, $2, $4, $7); }
 	|
 	BREAK				{ $$ = new E(BreakExprAST, ); }
 	;
