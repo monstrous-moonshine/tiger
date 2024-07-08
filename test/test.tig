@@ -1,8 +1,11 @@
 let type a = b
     type b = {a: TypeA, b: TypeB}
     var a : int := 340
+    function fn1(a: int, b: int) = nil
+    function fn2(a: string, b: string) = nil
   in
     a.field := new record { a=1, b=2, c=3};
     b.arr := new arr [1 + 2] of func(3, 6) end;
+    let in end;
     my_fun(1, 2, 3)
 end
