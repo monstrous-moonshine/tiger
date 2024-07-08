@@ -2,9 +2,6 @@
 #define ABSYN_H
 #include "absyn_common.h"
 #include "symbol.h"
-#include <cstdio>
-#include <memory>
-#include <variant>
 #include <vector>
 
 namespace yy {

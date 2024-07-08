@@ -1,6 +1,7 @@
 #ifndef PRINT_H
 #define PRINT_H
 #include "absyn.h"
+#include <cstdio>
 
 namespace absyn {
 
