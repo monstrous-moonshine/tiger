@@ -229,7 +229,7 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
     switch (exps->seq.size()) {
     case 0:
 	delete exps;
-	return new ExprAST{uptr<NilExprAST>(nullptr)};
+	return new ExprAST{make_unique<UnitExprAST>()};
     case 1: {
 	auto exp = new ExprAST{std::move(exps->seq[0])};
 	delete exps;

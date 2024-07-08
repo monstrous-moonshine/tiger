@@ -31,13 +31,15 @@ struct WhileExprAST;
 struct ForExprAST;
 struct BreakExprAST;
 struct LetExprAST;
+struct UnitExprAST;
 
 using ExprAST =
     std::variant<uptr<VarExprAST>, uptr<NilExprAST>, uptr<IntExprAST>,
                  uptr<StringExprAST>, uptr<CallExprAST>, uptr<OpExprAST>,
                  uptr<RecordExprAST>, uptr<ArrayExprAST>, uptr<SeqExprAST>,
                  uptr<AssignExprAST>, uptr<IfExprAST>, uptr<WhileExprAST>,
-                 uptr<ForExprAST>, uptr<BreakExprAST>, uptr<LetExprAST>>;
+                 uptr<ForExprAST>, uptr<BreakExprAST>, uptr<LetExprAST>,
+                 uptr<UnitExprAST>>;
 
 struct NameTy;
 struct RecordTy;

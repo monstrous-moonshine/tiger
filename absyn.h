@@ -127,11 +127,11 @@ struct StringExprAST : ExprAST {
 };
 
 struct CallExprAST : ExprAST {
-  Symbol fn;
+  Symbol func;
   std::vector<ExprAST> args;
 
   CallExprAST(const char *fn, ExprSeq *args)
-      : fn(fn), args(std::move(args->seq)) {
+      : func(fn), args(std::move(args->seq)) {
     delete args;
   }
 };
@@ -146,10 +146,10 @@ struct OpExprAST : ExprAST {
 
 struct RecordExprAST : ExprAST {
   Symbol type_id;
-  std::vector<Field> args;
+  std::vector<Field> fields;
 
   RecordExprAST(const char *type_id, FieldSeq *args)
-      : type_id(type_id), args(std::move(args->seq)) {
+      : type_id(type_id), fields(std::move(args->seq)) {
     delete args;
   }
 };
@@ -177,11 +177,12 @@ struct AssignExprAST : ExprAST {
 };
 
 struct IfExprAST : ExprAST {
-  ExprAST cond, then, else_;
+  ExprAST cond, then;
+  std::optional<ExprAST> else_;
 
   IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *else_)
       : cond(std::move(*cond)), then(std::move(*then)),
-        else_(std::move(*else_)) {}
+        else_(else_ ? std::move(*else_) : std::optional<ExprAST>{}) {}
 };
 
 struct WhileExprAST : ExprAST {
@@ -212,6 +213,8 @@ struct LetExprAST : ExprAST {
     delete decs;
   }
 };
+
+struct UnitExprAST : ExprAST {};
 
 struct NameTy {
   Symbol type_id;
