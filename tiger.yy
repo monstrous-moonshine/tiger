@@ -53,22 +53,36 @@ exp:	op_exp
 	|
 	assign_exp
 	|
-	IF op_exp THEN exp END		{ $$ = new ExprAST{make_unique<IfExprAST>($2, $4, nullptr)}; }
+	IF exp THEN exp			{ $$ = new ExprAST{make_unique<IfExprAST>($2, $4, nullptr)}; }
 	|
-	WHILE op_exp DO exp END		{ $$ = new ExprAST{make_unique<WhileExprAST>($2, $4)}; }
+	IF exp THEN exp ELSE exp	{ $$ = new ExprAST{make_unique<IfExprAST>($2, $4, $6)}; }
 	|
-	FOR ID ASSIGN op_exp TO op_exp DO exp END	{ $$ = new ExprAST{make_unique<ForExprAST>($2, $4, $6, $8)}; }
+	WHILE exp DO exp		{ $$ = new ExprAST{make_unique<WhileExprAST>($2, $4)}; }
+	|
+	FOR ID ASSIGN exp TO exp DO exp	{ $$ = new ExprAST{make_unique<ForExprAST>($2, $4, $6, $8)}; }
+	|
+	LET decs IN expseq END		{ $$ = new ExprAST{make_unique<LetExprAST>($2, expseq_to_expr($4))}; }
+	|
+	record_exp
+	|
+	array_exp
 	|
 	BREAK				{ $$ = new ExprAST{make_unique<BreakExprAST>()}; }
 	;
+record_exp:
+	NEW ID '{' fieldseq '}'		{ $$ = new ExprAST{make_unique<RecordExprAST>($2, $4)}; }
+	;
+array_exp:
+	NEW ID '[' op_exp ']' OF op_exp	{ $$ = new ExprAST{make_unique<ArrayExprAST>($2, $4, $7)}; }
+	;
 assign_exp:
-	lvalue ASSIGN op_exp		{ $$ = new ExprAST{make_unique<AssignExprAST>($1, $3)}; }
+	lvalue ASSIGN exp		{ $$ = new ExprAST{make_unique<AssignExprAST>($1, $3)}; }
 	;
 lvalue: ID				{ $$ = new VarAST{make_unique<SimpleVarAST>($1)}; }
 	|
 	lvalue '.' ID			{ $$ = new VarAST{make_unique<FieldVarAST>($1, $3)}; }
 	|
-	lvalue '[' op_exp ']'		{ $$ = new VarAST{make_unique<IndexVarAST>($1, $3)}; }
+	lvalue '[' exp ']'		{ $$ = new VarAST{make_unique<IndexVarAST>($1, $3)}; }
 	;
 op_exp:
 	logical_exp
@@ -109,31 +123,17 @@ unary:	primary
 	'-' unary			{ $$ = new ExprAST{make_unique<OpExprAST>(new IntExprAST(0), $2, Op::kMinus)}; }
 	;
 primary:
-	IF op_exp THEN exp ELSE exp END { $$ = new ExprAST{make_unique<IfExprAST>($2, $4, $6)}; }
-	|
 	ID '(' argseq ')'		{ $$ = new ExprAST{make_unique<CallExprAST>($1, $3)}; }
 	|
 	'(' expseq ')'			{ $$ = expseq_to_expr($2); }
 	|
-	LET decs IN expseq END 		{ $$ = new ExprAST{make_unique<LetExprAST>($2, expseq_to_expr($4))}; }
-	|
 	lvalue				{ $$ = new ExprAST{make_unique<VarExprAST>($1)}; }
-	|
-	record_exp
-	|
-	array_exp
 	|
 	INT				{ $$ = new ExprAST{make_unique<IntExprAST>($1)}; }
 	|
 	STR				{ $$ = new ExprAST{make_unique<StringExprAST>($1)}; }
 	|
 	NIL				{ $$ = new ExprAST{make_unique<NilExprAST>()}; }
-	;
-record_exp:
-	NEW ID '{' fieldseq '}'		{ $$ = new ExprAST{make_unique<RecordExprAST>($2, $4)}; }
-	;
-array_exp:
-	NEW ID '[' op_exp ']' OF op_exp END	{ $$ = new ExprAST{make_unique<ArrayExprAST>($2, $4, $7)}; }
 	;
 expseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
@@ -201,9 +201,9 @@ tyfields:
 tyfield:
 	ID ':' ID 			{ $$ = new FieldTy($1, $3); }
 	;
-vardec:	VAR ID ASSIGN op_exp 		{ $$ = new DeclAST{make_unique<VarDeclAST>($2, nullptr, $4)}; }
+vardec:	VAR ID ASSIGN exp 		{ $$ = new DeclAST{make_unique<VarDeclAST>($2, nullptr, $4)}; }
 	|
-	VAR ID ':' ID ASSIGN op_exp 	{ $$ = new DeclAST{make_unique<VarDeclAST>($2, $4, $6)}; }
+	VAR ID ':' ID ASSIGN exp 	{ $$ = new DeclAST{make_unique<VarDeclAST>($2, $4, $6)}; }
 	;
 fundecs:
 	fundec 				{ $$ = new DeclAST{make_unique<FuncDeclAST>()}; std::get<uptr<FuncDeclAST>>(*$$)->AddFunc($1); }
@@ -211,12 +211,12 @@ fundecs:
 	fundecs fundec 			{ $$ = $1; std::get<uptr<FuncDeclAST>>(*$$)->AddFunc($2);
 	}
 	;
-fundec: FUNC ID '(' tyfieldseq ')' '=' op_exp
+fundec: FUNC ID '(' tyfieldseq ')' '=' exp
 	{
 	    $$ = new FundecTy($2, $4, nullptr, $7);
 	}
 	|
-	FUNC ID '(' tyfieldseq ')' ':' ID '=' op_exp
+	FUNC ID '(' tyfieldseq ')' ':' ID '=' exp
 	{
 	    $$ = new FundecTy($2, $4, $7, $9);
 	}
