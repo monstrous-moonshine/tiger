@@ -21,6 +21,18 @@ ExprAST *expseq_to_expr(ExprSeq *);
 #define TV(type, ...) Ty{std::make_unique<type>(__VA_ARGS__)}
 #define TD(val) std::get<uptr<TypeDeclAST>>(val)
 #define FD(val) std::get<uptr<FuncDeclAST>>(val)
+
+#define YYLLOC_DEFAULT(Current, Rhs, N)	 \
+    do					 \
+      if (N)				 \
+	{				 \
+	  (Current) = YYRHSLOC (Rhs, 1); \
+	}				 \
+      else				 \
+	{				 \
+	  (Current) = YYRHSLOC (Rhs, 0); \
+	}				 \
+    while (false)
 %}
 
 %require "3.2"
@@ -232,7 +244,7 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
 }
 
 void parser::error(const Location& loc, const std::string& msg) {
-    std::printf("%s at %d:%d\n", msg.c_str(), loc.begin.line, loc.begin.column);
+    std::printf("%s at %d:%d\n", msg.c_str(), loc.line, loc.column);
 }
 
 } // namespace

@@ -13,7 +13,7 @@ namespace {
 }
 #define YY_DECL int yylex(Token *yylval, Location *yylloc)
 #define YY_NO_UNPUT 1
-#define YY_USER_ACTION yylloc->begin = {line_, column_}; column_ += yyleng;
+#define YY_USER_ACTION *yylloc = {line_, column_}; column_ += yyleng;
 %}
 
 IDENT	[A-Za-z][A-Za-z0-9_]*
