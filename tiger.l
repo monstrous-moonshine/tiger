@@ -1,10 +1,19 @@
 /* vim: set ts=8 noet: */
 %{
 #include "token.h"
+#include "location.h"
 #include "tiger.tab.hh"
 using token = yy::parser::token;
-#define YY_DECL int yylex(Token *yylval)
+namespace {
+  int line_ = 1, column_ = 1;
+  void line() {
+    line_++;
+    column_ = 1;
+  }
+}
+#define YY_DECL int yylex(Token *yylval, Location *yylloc)
 #define YY_NO_UNPUT 1
+#define YY_USER_ACTION yylloc->begin = {line_, column_}; column_ += yyleng;
 %}
 
 IDENT	[A-Za-z][A-Za-z0-9_]*
@@ -14,7 +23,7 @@ USTRING	\"([[:print:]]{-}["\\]|{ESCAPE})*
 
 %%
 [ \t]*		/* ignore */
-\n		yylval->line++;
+\n		line();
 \{|\}|:|,|\(|\)|\.|\[|\]|;|\+|-|\*|\/|=|<|>|&|\|	return yytext[0];
 ":="		return token::ASSIGN;
 "<>"		return token::NEQ;
@@ -38,15 +47,15 @@ to		return token::TO;
 type		return token::TYPE;
 var		return token::VAR;
 while		return token::WHILE;
-[0-9]+		yylval->as.num = atoi(yytext); return token::INT;
-{IDENT}		yylval->as.str = strndup(yytext, yyleng); return token::ID;
-{TSTRING}	yylval->as.str = strndup(yytext, yyleng); return token::STR;
-{USTRING}	fprintf(stderr, "Unterminated string on line %d\n", yylval->line); return token::YYerror;
+[0-9]+		yylval->num = atoi(yytext); return token::INT;
+{IDENT}		yylval->str = strndup(yytext, yyleng); return token::ID;
+{TSTRING}	yylval->str = strndup(yytext, yyleng); return token::STR;
+{USTRING}	fprintf(stderr, "Unterminated string on line %d\n", line_); return token::YYerror;
 "/*"		{
 		char c = yyinput();
 		int nest_level = 1;
 		while (c != token::YYEOF && nest_level > 0) {
-		    if (c == '\n') yylval->line++;
+		    if (c == '\n') line();
 		    if (c == '*') {
 			c = yyinput();
 			if (c == '/') { nest_level--; c = yyinput(); }
@@ -58,12 +67,12 @@ while		return token::WHILE;
 		    }
 		}
 		if (c == token::YYEOF) {
-		    fprintf(stderr, "Unterminated comment on line %d\n", yylval->line);
+		    fprintf(stderr, "Unterminated comment on line %d\n", line_);
 		    return token::YYerror;
 		}
 		}
 .		{
-		fprintf(stderr, "Unexpected character %c on line %d\n", yytext[0], yylval->line);
+		fprintf(stderr, "Unexpected character %c on line %d\n", yytext[0], line_);
 		return token::YYerror;
 		}
 

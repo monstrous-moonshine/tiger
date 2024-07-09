@@ -2,9 +2,10 @@
 %{
 #include "token.h"
 #include "absyn.h"
+#include "location.h"
 
 // defined in lex.yy.cc
-int yylex(Token *yylval);
+int yylex(Token *yylval, Location *yylloc);
 
 using namespace absyn;
 // result of the parse
@@ -24,11 +25,13 @@ ExprAST *expseq_to_expr(ExprSeq *);
 
 %require "3.2"
 %language "c++"
+%locations
+%define api.location.type {Location}
 %define api.value.type {Token}
 
-%token <as.str> ID
-%token <as.num> INT
-%token <as.str> STR
+%token <str> ID
+%token <num> INT
+%token <str> STR
 %token NIL
 
 %nonassoc ASSIGN
@@ -40,18 +43,18 @@ ExprAST *expseq_to_expr(ExprSeq *);
 
 %token ARRAY BREAK DO ELSE END FOR FUNC IF IN LET NEW OF THEN TO TYPE VAR WHILE
 
-%nterm <as.exp> exp op_exp primary
-%nterm <as.var> lvalue
-%nterm <as.fields> fieldseq fields
-%nterm <as.field> field
-%nterm <as.exps> expseq exps argseq args
-%nterm <as.decls> decs
-%nterm <as.decl> dec vardec tydecs fundecs
-%nterm <as.tydec> tydec
-%nterm <as.fundec> fundec
-%nterm <as.ty> ty
-%nterm <as.tyfields> tyfieldseq tyfields
-%nterm <as.tyfield> tyfield
+%nterm <exp> exp op_exp primary
+%nterm <var> lvalue
+%nterm <fields> fieldseq fields
+%nterm <field> field
+%nterm <exps> expseq exps argseq args
+%nterm <decls> decs
+%nterm <decl> dec vardec tydecs fundecs
+%nterm <tydec> tydec
+%nterm <fundec> fundec
+%nterm <ty> ty
+%nterm <tyfields> tyfieldseq tyfields
+%nterm <tyfield> tyfield
 
 %%
 prog:	exp				{ parse_result.reset($1); }
@@ -228,8 +231,8 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
     }
 }
 
-void parser::error(const std::string& msg) {
-    std::cerr << msg << "\n";
+void parser::error(const Location& loc, const std::string& msg) {
+    std::printf("%s at %d:%d\n", msg.c_str(), loc.begin.line, loc.begin.column);
 }
 
 } // namespace

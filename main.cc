@@ -1,3 +1,4 @@
+#include "location.h"
 #include "print.h"
 #include "token.h"
 #include "tiger.tab.hh"
