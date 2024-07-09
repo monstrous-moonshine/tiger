@@ -168,9 +168,9 @@ field:	ID '=' op_exp			{ $$ = new Field(Symbol($1), std::move(*$3)); }
 
 /*============================== DECLARATIONS ==============================*/
 
-decs: 	/* empty */ 			{ $$ = new DeclSeq(); }
+decs:	/* empty */			{ $$ = new DeclSeq(); }
 	|
-	decs dec 			{ $$ = $1; $$->AddDecl($2); }
+	decs dec			{ $$ = $1; $$->AddDecl($2); }
 	;
 dec:	tydecs
 	|
@@ -178,40 +178,40 @@ dec:	tydecs
 	|
 	fundecs
 	;
-tydecs: tydec 				{ $$ = new D(TypeDeclAST); TD(*$$)->AddType($1); }
+tydecs: tydec				{ $$ = new D(TypeDeclAST); TD(*$$)->AddType($1); }
 	|
-	tydecs tydec 			{ $$ = $1; TD(*$$)->AddType($2); }
+	tydecs tydec			{ $$ = $1; TD(*$$)->AddType($2); }
 	;
-tydec:	TYPE ID '=' ty 			{ $$ = new Type(Symbol($2), std::move(*$4)); }
+tydec:	TYPE ID '=' ty			{ $$ = new Type(Symbol($2), std::move(*$4)); }
 	;
-ty:	ID 				{ $$ = new TV(NameTy, $1); }
+ty:	ID				{ $$ = new TV(NameTy, $1); }
 	|
-	'{' tyfieldseq '}' 		{ $$ = new TV(RecordTy, $2); }
+	'{' tyfieldseq '}'		{ $$ = new TV(RecordTy, $2); }
 	|
-	ARRAY OF ID 			{ $$ = new TV(ArrayTy, $3); }
+	ARRAY OF ID			{ $$ = new TV(ArrayTy, $3); }
 	;
 tyfieldseq:
-	/* empty */ 			{ $$ = new FieldTySeq(); }
+	/* empty */			{ $$ = new FieldTySeq(); }
 	|
 	tyfields
 	;
 tyfields:
-	tyfield 			{ $$ = new FieldTySeq(); $$->AddField($1); }
+	tyfield				{ $$ = new FieldTySeq(); $$->AddField($1); }
 	|
-	tyfields ',' tyfield 		{ $$ = $1; $$->AddField($3);
+	tyfields ',' tyfield		{ $$ = $1; $$->AddField($3);
 	}
 	;
 tyfield:
-	ID ':' ID 			{ $$ = new FieldTy($1, $3); }
+	ID ':' ID			{ $$ = new FieldTy($1, $3); }
 	;
-vardec:	VAR ID ASSIGN exp 		{ $$ = new D(VarDeclAST, $2, nullptr, $4); }
+vardec:	VAR ID ASSIGN exp		{ $$ = new D(VarDeclAST, $2, nullptr, $4); }
 	|
-	VAR ID ':' ID ASSIGN exp 	{ $$ = new D(VarDeclAST, $2, $4, $6); }
+	VAR ID ':' ID ASSIGN exp	{ $$ = new D(VarDeclAST, $2, $4, $6); }
 	;
 fundecs:
-	fundec 				{ $$ = new D(FuncDeclAST, ); FD(*$$)->AddFunc($1); }
+	fundec				{ $$ = new D(FuncDeclAST, ); FD(*$$)->AddFunc($1); }
 	|
-	fundecs fundec 			{ $$ = $1; FD(*$$)->AddFunc($2);
+	fundecs fundec			{ $$ = $1; FD(*$$)->AddFunc($2);
 	}
 	;
 fundec: FUNC ID '(' tyfieldseq ')' '=' exp
