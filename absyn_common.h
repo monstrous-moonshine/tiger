@@ -33,13 +33,11 @@ struct BreakExprAST;
 struct LetExprAST;
 struct UnitExprAST;
 
-using ExprAST =
-    std::variant<uptr<VarExprAST>, uptr<NilExprAST>, uptr<IntExprAST>,
-                 uptr<StringExprAST>, uptr<CallExprAST>, uptr<OpExprAST>,
-                 uptr<RecordExprAST>, uptr<ArrayExprAST>, uptr<SeqExprAST>,
-                 uptr<AssignExprAST>, uptr<IfExprAST>, uptr<WhileExprAST>,
-                 uptr<ForExprAST>, uptr<BreakExprAST>, uptr<LetExprAST>,
-                 uptr<UnitExprAST>>;
+using ExprAST = std::variant<
+    uptr<VarExprAST>, uptr<NilExprAST>, uptr<IntExprAST>, uptr<StringExprAST>,
+    uptr<CallExprAST>, uptr<OpExprAST>, uptr<RecordExprAST>, uptr<ArrayExprAST>,
+    uptr<SeqExprAST>, uptr<AssignExprAST>, uptr<IfExprAST>, uptr<WhileExprAST>,
+    uptr<ForExprAST>, uptr<BreakExprAST>, uptr<LetExprAST>, uptr<UnitExprAST>>;
 
 struct NameTy;
 struct RecordTy;
@@ -52,8 +50,8 @@ struct FuncDeclAST;
 using DeclAST =
     std::variant<uptr<TypeDeclAST>, uptr<VarDeclAST>, uptr<FuncDeclAST>>;
 
-using Field = std::pair<symbol::Symbol, ExprAST>;
-using Type = std::pair<symbol::Symbol, Ty>;
+struct Field;
+struct Type;
 
 class ExprSeq;
 class FieldSeq;

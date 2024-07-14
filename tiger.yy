@@ -73,60 +73,60 @@ prog:	exp				{ parse_result.reset($1); }
 	;
 exp:	op_exp
 	|
-	lvalue ASSIGN exp		{ $$ = new E(AssignExprAST, $1, $3); }
+	lvalue ASSIGN exp		{ $$ = new E(AssignExprAST, $1, $3, @2); }
 	|
-	IF exp THEN exp			{ $$ = new E(IfExprAST, $2, $4, nullptr); }
+	IF exp THEN exp			{ $$ = new E(IfExprAST, $2, $4, nullptr, @1); }
 	|
-	IF exp THEN exp ELSE exp	{ $$ = new E(IfExprAST, $2, $4, $6); }
+	IF exp THEN exp ELSE exp	{ $$ = new E(IfExprAST, $2, $4, $6, @1); }
 	|
-	WHILE exp DO exp		{ $$ = new E(WhileExprAST, $2, $4); }
+	WHILE exp DO exp		{ $$ = new E(WhileExprAST, $2, $4, @1); }
 	|
-	FOR ID ASSIGN exp TO exp DO exp	{ $$ = new E(ForExprAST, $2, $4, $6, $8); }
+	FOR ID ASSIGN exp TO exp DO exp	{ $$ = new E(ForExprAST, $2, $4, $6, $8, @1); }
 	|
-	LET decs IN expseq END		{ $$ = new E(LetExprAST, $2, expseq_to_expr($4)); }
+	LET decs IN expseq END		{ $$ = new E(LetExprAST, $2, expseq_to_expr($4), @1); }
 	|
-	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4); }
+	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4, @2); }
 	|
-	NEW ID '[' exp ']' OF exp	{ $$ = new E(ArrayExprAST, $2, $4, $7); }
+	NEW ID '[' exp ']' OF exp	{ $$ = new E(ArrayExprAST, $2, $4, $7, @2); }
 	|
-	BREAK				{ $$ = new E(BreakExprAST, ); }
+	BREAK				{ $$ = new E(BreakExprAST, @1); }
 	;
-lvalue: ID				{ $$ = new V(SimpleVarAST, $1); }
+lvalue: ID				{ $$ = new V(SimpleVarAST, $1, @1); }
 	|
-	lvalue '.' ID			{ $$ = new V(FieldVarAST, $1, $3); }
+	lvalue '.' ID			{ $$ = new V(FieldVarAST, $1, $3, @2); }
 	|
-	lvalue '[' exp ']'		{ $$ = new V(IndexVarAST, $1, $3); }
+	lvalue '[' exp ']'		{ $$ = new V(IndexVarAST, $1, $3, @2); }
 	;
-op_exp: op_exp '&' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd); }
+op_exp: op_exp '&' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd, @2); }
 	|
-	op_exp '|' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kOr); }
+	op_exp '|' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kOr, @2); }
 	|
-	op_exp '=' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kEq); }
+	op_exp '=' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kEq, @2); }
 	|
-	op_exp NEQ op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kNeq); }
+	op_exp NEQ op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kNeq, @2); }
 	|
-	op_exp '<' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLt); }
+	op_exp '<' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLt, @2); }
 	|
-	op_exp LE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLe); }
+	op_exp LE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kLe, @2); }
 	|
-	op_exp '>' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGt); }
+	op_exp '>' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGt, @2); }
 	|
-	op_exp GE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGe); }
+	op_exp GE op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kGe, @2); }
 	|
-	op_exp '+' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kPlus); }
+	op_exp '+' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kPlus, @2); }
 	|
-	op_exp '-' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMinus); }
+	op_exp '-' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMinus, @2); }
 	|
-	op_exp '*' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMul); }
+	op_exp '*' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kMul, @2); }
 	|
-	op_exp '/' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kDiv); }
+	op_exp '/' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kDiv, @2); }
 	|
-	'-' op_exp %prec UMINUS		{ $$ = new E(OpExprAST, new IntExprAST(0), $2, Op::kMinus); }
+	'-' op_exp %prec UMINUS		{ $$ = new E(OpExprAST, new IntExprAST(0), $2, Op::kMinus, @1); }
 	|
 	primary
 	;
 primary:
-	ID '(' argseq ')'		{ $$ = new E(CallExprAST, $1, $3); }
+	ID '(' argseq ')'		{ $$ = new E(CallExprAST, $1, $3, @2); }
 	|
 	'(' expseq ')'			{ $$ = expseq_to_expr($2); }
 	|
@@ -136,23 +136,23 @@ primary:
 	|
 	STR				{ $$ = new E(StringExprAST, $1); }
 	|
-	NIL				{ $$ = new E(NilExprAST, ); }
+	NIL				{ $$ = new E(NilExprAST); }
 	;
 expseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
 	exps
 	;
-exps:	exp				{ $$ = new ExprSeq(); $$->AddExpr($1); }
+exps:	exp				{ $$ = new ExprSeq(); $$->AddExpr($1, @1); }
 	|
-	exps ';' exp			{ $$ = $1; $$->AddExpr($3); }
+	exps ';' exp			{ $$ = $1; $$->AddExpr($3, @3); }
 	;
 argseq: /* empty */			{ $$ = new ExprSeq(); }
 	|
 	args
 	;
-args:	exp				{ $$ = new ExprSeq(); $$->AddExpr($1); }
+args:	exp				{ $$ = new ExprSeq(); $$->AddExpr($1, @1); }
 	|
-	args ',' exp			{ $$ = $1; $$->AddExpr($3); }
+	args ',' exp			{ $$ = $1; $$->AddExpr($3, @3); }
 	;
 fieldseq:
 	/* empty */			{ $$ = new FieldSeq(); }
@@ -163,7 +163,7 @@ fields: field				{ $$ = new FieldSeq(); $$->AddField($1); }
 	|
 	fields ',' field		{ $$ = $1; $$->AddField($3); }
 	;
-field:	ID '=' op_exp			{ $$ = new Field(Symbol($1), std::move(*$3)); }
+field:	ID '=' op_exp			{ $$ = new Field($1, $3, @1); }
 	;
 
 /*============================== DECLARATIONS ==============================*/
@@ -182,13 +182,13 @@ tydecs: tydec				{ $$ = new D(TypeDeclAST); TD(*$$)->AddType($1); }
 	|
 	tydecs tydec			{ $$ = $1; TD(*$$)->AddType($2); }
 	;
-tydec:	TYPE ID '=' ty			{ $$ = new Type(Symbol($2), std::move(*$4)); }
+tydec:	TYPE ID '=' ty			{ $$ = new Type($2, $4, @1); }
 	;
-ty:	ID				{ $$ = new TV(NameTy, $1); }
+ty:	ID				{ $$ = new TV(NameTy, $1, @1); }
 	|
 	'{' tyfieldseq '}'		{ $$ = new TV(RecordTy, $2); }
 	|
-	ARRAY OF ID			{ $$ = new TV(ArrayTy, $3); }
+	ARRAY OF ID			{ $$ = new TV(ArrayTy, $3, @3); }
 	;
 tyfieldseq:
 	/* empty */			{ $$ = new FieldTySeq(); }
@@ -202,26 +202,26 @@ tyfields:
 	}
 	;
 tyfield:
-	ID ':' ID			{ $$ = new FieldTy($1, $3); }
+	ID ':' ID			{ $$ = new FieldTy($1, $3, @1); }
 	;
-vardec:	VAR ID ASSIGN exp		{ $$ = new D(VarDeclAST, $2, nullptr, $4); }
+vardec:	VAR ID ASSIGN exp		{ $$ = new D(VarDeclAST, $2, nullptr, @1, $4, @1); }
 	|
-	VAR ID ':' ID ASSIGN exp	{ $$ = new D(VarDeclAST, $2, $4, $6); }
+	VAR ID ':' ID ASSIGN exp	{ $$ = new D(VarDeclAST, $2, $4, @4, $6, @1); }
 	;
 fundecs:
-	fundec				{ $$ = new D(FuncDeclAST, ); FD(*$$)->AddFunc($1); }
+	fundec				{ $$ = new D(FuncDeclAST); FD(*$$)->AddFunc($1); }
 	|
 	fundecs fundec			{ $$ = $1; FD(*$$)->AddFunc($2);
 	}
 	;
 fundec: FUNC ID '(' tyfieldseq ')' '=' exp
 	{
-	    $$ = new FundecTy($2, $4, nullptr, $7);
+	    $$ = new FundecTy($2, $4, nullptr, @1, $7, @1);
 	}
 	|
 	FUNC ID '(' tyfieldseq ')' ':' ID '=' exp
 	{
-	    $$ = new FundecTy($2, $4, $7, $9);
+	    $$ = new FundecTy($2, $4, $7, @7, $9, @1);
 	}
 	;
 
@@ -234,7 +234,7 @@ ExprAST *expseq_to_expr(ExprSeq *exps) {
 	delete exps;
 	return new E(UnitExprAST);
     case 1: {
-	auto exp = new ExprAST{std::move(exps->seq[0])};
+	auto exp = new ExprAST{std::move(exps->seq[0].exp)};
 	delete exps;
 	return exp;
     }

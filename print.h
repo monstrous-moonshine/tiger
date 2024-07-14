@@ -49,7 +49,7 @@ public:
     const char *sep = "";
     for (auto &arg : e->args) {
       std::printf("%s", sep);
-      print(indent_, arg);
+      print(indent_, arg.exp);
       sep = ", ";
     }
     std::printf(")");
@@ -69,8 +69,8 @@ public:
     std::printf("%s {", e->type_id.name());
     const char *sep = "";
     for (auto &field : e->fields) {
-      std::printf("%s%s=", sep, field.first.name());
-      print(indent_, field.second);
+      std::printf("%s%s=", sep, field.name.name());
+      print(indent_, field.value);
       sep = ", ";
     }
     std::printf("}");
@@ -92,7 +92,7 @@ public:
         if (is_let_body)
           do_indent(indent_);
       }
-      print(indent_, exp);
+      print(indent_, exp.exp);
       needs_sep = true;
     }
     std::printf(is_let_body ? "" : ")");
@@ -170,15 +170,15 @@ public:
         std::printf("\n");
         do_indent(indent_);
       }
-      std::printf("type %s = ", type.first.name());
-      print(indent_, type.second);
+      std::printf("type %s = ", type.name.name());
+      print(indent_, type.type);
       needs_indent = true;
     }
   }
   void operator()(uptr<VarDeclAST> &decl) {
     std::printf("var %s", decl->name.name());
     if (decl->type_id)
-      std::printf(" : %s", decl->type_id.name());
+      std::printf(" : %s", decl->type_id->sym.name());
     std::printf(" := ");
     print(indent_, decl->init);
   }
@@ -209,7 +209,7 @@ inline void ExprASTPrintVisitor::operator()(uptr<LetExprAST> &e) {
   std::printf("\n");
   do_indent(indent_ + 1);
   std::printf("in ");
-  std::visit(ExprASTPrintVisitor(indent_ + 4, true), e->exp);
+  std::visit(ExprASTPrintVisitor(indent_ + 4, true), e->body);
   std::printf("\n");
   do_indent(indent_);
   std::printf("end");
@@ -236,7 +236,7 @@ inline void FundecTy::print(int indent) {
   }
   std::printf(")");
   if (result)
-    std::printf(" : %s", result.name());
+    std::printf(" : %s", result->sym.name());
   std::printf(" =\n");
   detail::do_indent(indent + 2);
   absyn::print(indent + 2, body);
