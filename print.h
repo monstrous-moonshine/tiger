@@ -58,12 +58,11 @@ public:
     const char *op_str[] = {
         "+", "-", "*", "/", "=", "<>", "<", "<=", ">", ">=", "&", "|",
     };
-    std::printf("(");
-    // this is a bit arbitrary
+    std::printf("( ");
     print(indent_ + 2, e->lhs);
-    std::printf("%s", op_str[static_cast<int>(e->op)]);
+    std::printf(" %s ", op_str[static_cast<int>(e->op)]);
     print(indent_ + 2, e->rhs);
-    std::printf(")");
+    std::printf(" )");
   }
   void operator()(uptr<RecordExprAST> &e) {
     std::printf("%s {", e->type_id.name());
@@ -84,7 +83,7 @@ public:
   }
   void operator()(uptr<SeqExprAST> &e) {
     std::printf(is_let_body ? "" : "(");
-    const char *sep = is_let_body ? "\n" : "; ";
+    const char *sep = is_let_body ? ";\n" : "; ";
     bool needs_sep = false;
     for (auto &exp : e->exps) {
       if (needs_sep) {
