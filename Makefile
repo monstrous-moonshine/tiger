@@ -1,9 +1,13 @@
 CXXFLAGS := -Wall -Og -g -MMD
 OUTPUT_DIR := build
-OBJECTS := main.o lex.yy.o tiger.tab.o symbol.o
-DEPS := $(OBJECTS:%.o=$(OUTPUT_DIR)/%.d)
+SRCS := main.cc symbol.cc semant.cc types.cc
+HDRS := absyn.h absyn_common.h env.h location.h logging.h print.h semant.h symbol.h token.h types.h
+GENS := lex.yy.cc tiger.tab.cc
+GENH := tiger.tab.hh
+OBJS := $(SRCS:%.cc=$(OUTPUT_DIR)/%.o) $(GENS:%.cc=$(OUTPUT_DIR)/%.o)
+DEPS := $(SRCS:%.cc=$(OUTPUT_DIR)/%.d) $(GENS:%.cc=$(OUTPUT_DIR)/%.d)
 
-tiger: $(OBJECTS:%=$(OUTPUT_DIR)/%)
+tiger: $(OBJS)
 	$(CXX) -o $@ $^
 
 $(OUTPUT_DIR)/%.o: %.cc
@@ -21,10 +25,10 @@ tiger.tab.cc: tiger.yy
 $(OUTPUT_DIR)/main.o $(OUTPUT_DIR)/lex.yy.o: tiger.tab.hh
 
 format:
-	clang-format -i absyn.h symbol.* token.h
+	clang-format -i $(SRCS) $(HDRS)
 
 clean:
-	$(RM) $(OUTPUT_DIR)/* lex.yy.cc tiger.tab.{cc,hh} tiger
+	$(RM) $(OUTPUT_DIR)/* $(GENS) $(GENH) tiger
 
 .PHONY: clean format
 
