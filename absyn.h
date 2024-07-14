@@ -27,12 +27,12 @@ enum class Op : int {
   kOr,
 };
 
-struct Field {
+struct RExprField {
   Symbol name;
   ExprAST value;
   Location pos;
 
-  Field(const char *name, ExprAST *value, Location pos)
+  RExprField(const char *name, ExprAST *value, Location pos)
       : name(name), value(std::move(*value)), pos(pos) {}
 };
 
@@ -45,12 +45,12 @@ struct Type {
       : name(name), type(std::move(*type)), pos(pos) {}
 };
 
-struct FieldTy {
+struct RTyField {
   Symbol name, type_id;
   bool escape{true};
   Location pos;
 
-  FieldTy(const char *name, const char *type_id, Location pos)
+  RTyField(const char *name, const char *type_id, Location pos)
       : name(name), type_id(type_id), pos(pos) {}
 };
 
@@ -87,26 +87,26 @@ public:
   void AddDecl(DeclAST *decl) { seq.push_back(std::move(*decl)); }
 };
 
-class FieldSeq {
-  std::vector<Field> seq;
+class RExprFieldSeq {
+  std::vector<RExprField> seq;
   friend class RecordExprAST;
 
 public:
-  FieldSeq() = default;
-  void AddField(Field *field) {
+  RExprFieldSeq() = default;
+  void AddField(RExprField *field) {
     seq.push_back(std::move(*field));
     delete field;
   }
 };
 
-class FieldTySeq {
-  std::vector<FieldTy> seq;
+class RTyFieldSeq {
+  std::vector<RTyField> seq;
   friend class RecordTy;
   friend class FundecTy;
 
 public:
-  FieldTySeq() = default;
-  void AddField(FieldTy *field) {
+  RTyFieldSeq() = default;
+  void AddField(RTyField *field) {
     seq.push_back(*field);
     delete field;
   }
@@ -180,10 +180,10 @@ struct OpExprAST : ExprAST {
 
 struct RecordExprAST : ExprAST {
   Symbol type_id;
-  std::vector<Field> fields;
+  std::vector<RExprField> fields;
   Location pos;
 
-  RecordExprAST(const char *type_id, FieldSeq *args, Location pos)
+  RecordExprAST(const char *type_id, RExprFieldSeq *args, Location pos)
       : type_id(type_id), fields(std::move(args->seq)), pos(pos) {
     delete args;
   }
@@ -271,9 +271,9 @@ struct NameTy {
 };
 
 struct RecordTy {
-  std::vector<FieldTy> fields;
+  std::vector<RTyField> fields;
 
-  RecordTy(FieldTySeq *fields) : fields(std::move(fields->seq)) {
+  RecordTy(RTyFieldSeq *fields) : fields(std::move(fields->seq)) {
     delete fields;
   }
 };
@@ -311,12 +311,12 @@ struct VarDeclAST {
 
 struct FundecTy {
   Symbol name;
-  std::vector<FieldTy> params;
+  std::vector<RTyField> params;
   std::optional<SymbolWithLoc> result;
   ExprAST body;
   Location pos;
 
-  FundecTy(const char *name, FieldTySeq *params, const char *result,
+  FundecTy(const char *name, RTyFieldSeq *params, const char *result,
            Location pos_res, ExprAST *body, Location pos)
       : name(name), params(std::move(params->seq)),
         result(result ? SymbolWithLoc{Symbol(result), pos_res}

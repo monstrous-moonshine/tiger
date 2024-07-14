@@ -155,15 +155,15 @@ args:	exp				{ $$ = new ExprSeq(); $$->AddExpr($1, @1); }
 	args ',' exp			{ $$ = $1; $$->AddExpr($3, @3); }
 	;
 fieldseq:
-	/* empty */			{ $$ = new FieldSeq(); }
+	/* empty */			{ $$ = new RExprFieldSeq(); }
 	|
 	fields
 	;
-fields: field				{ $$ = new FieldSeq(); $$->AddField($1); }
+fields: field				{ $$ = new RExprFieldSeq(); $$->AddField($1); }
 	|
 	fields ',' field		{ $$ = $1; $$->AddField($3); }
 	;
-field:	ID '=' op_exp			{ $$ = new Field($1, $3, @1); }
+field:	ID '=' op_exp			{ $$ = new RExprField($1, $3, @1); }
 	;
 
 /*============================== DECLARATIONS ==============================*/
@@ -191,18 +191,18 @@ ty:	ID				{ $$ = new TV(NameTy, $1, @1); }
 	ARRAY OF ID			{ $$ = new TV(ArrayTy, $3, @3); }
 	;
 tyfieldseq:
-	/* empty */			{ $$ = new FieldTySeq(); }
+	/* empty */			{ $$ = new RTyFieldSeq(); }
 	|
 	tyfields
 	;
 tyfields:
-	tyfield				{ $$ = new FieldTySeq(); $$->AddField($1); }
+	tyfield				{ $$ = new RTyFieldSeq(); $$->AddField($1); }
 	|
 	tyfields ',' tyfield		{ $$ = $1; $$->AddField($3);
 	}
 	;
 tyfield:
-	ID ':' ID			{ $$ = new FieldTy($1, $3, @1); }
+	ID ':' ID			{ $$ = new RTyField($1, $3, @1); }
 	;
 vardec:	VAR ID ASSIGN exp		{ $$ = new D(VarDeclAST, $2, nullptr, @1, $4, @1); }
 	|

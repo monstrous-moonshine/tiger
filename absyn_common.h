@@ -50,15 +50,15 @@ struct FuncDeclAST;
 using DeclAST =
     std::variant<uptr<TypeDeclAST>, uptr<VarDeclAST>, uptr<FuncDeclAST>>;
 
-struct Field;
+struct RExprField;
+struct RTyField;
 struct Type;
+struct FundecTy;
 
 class ExprSeq;
-class FieldSeq;
 class DeclSeq;
-class FieldTySeq;
-class FieldTy;
-class FundecTy;
+class RExprFieldSeq;
+class RTyFieldSeq;
 
 } // namespace absyn
 #endif

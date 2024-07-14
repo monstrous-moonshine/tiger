@@ -8,14 +8,14 @@ union Token {
   absyn::ExprAST *exp;
   absyn::VarAST *var;
   absyn::ExprSeq *exps;
-  absyn::FieldSeq *fields;
-  absyn::Field *field;
+  absyn::RExprFieldSeq *fields;
+  absyn::RExprField *field;
   absyn::DeclAST *decl;
   absyn::DeclSeq *decls;
   absyn::Ty *ty;
   absyn::Type *tydec;
-  absyn::FieldTySeq *tyfields;
-  absyn::FieldTy *tyfield;
+  absyn::RTyFieldSeq *tyfields;
+  absyn::RTyField *tyfield;
   absyn::FundecTy *fundec;
 };
 #endif
