@@ -51,6 +51,14 @@ Symbol::Symbol(const char *val) {
   }
 }
 
+uint32_t Hash::operator()(const Symbol &s1) const {
+  return ::Hash{}(s1.name());
+}
+
+bool Pred::operator()(const Symbol &s1, const Symbol &s2) const {
+  return ::Pred{}(s1.name(), s2.name());
+}
+
 void Symbol::FreeAll() {
   for (auto *str : registry) {
     std::free(const_cast<char *>(str));
