@@ -33,14 +33,26 @@ private:
 
 namespace semant {
 
+namespace detail {
+
+void trans_dec(Venv &, Tenv &, absyn::DeclAST &);
+types::Ty trans_ty(Tenv &, absyn::Ty &);
+
 bool is_int(const Expty &et) { return types::is<types::IntTy>(et.ty); }
 bool is_str(const Expty &et) { return types::is<types::StringTy>(et.ty); }
 bool is_record(const Expty &et) { return types::is<types::RecordTyRef>(et.ty); }
 bool is_array(const Expty &et) { return types::is<types::ArrayTyRef>(et.ty); }
 bool is_nil(const Expty &et) { return types::is<types::NilTy>(et.ty); }
 
-void trans_dec(Venv &, Tenv &, absyn::DeclAST &);
-types::Ty trans_ty(Tenv &, absyn::Ty &);
+template <typename C, typename F>
+void check_dup(const C &c, F &&f, const char *msg) {
+  std::unordered_set<const char *> names;
+  for (auto &e : c) {
+    CHECK_EQ(names.count(f(e)), 0U)
+        << e.pos << ": Duplicate name '" << f(e) << "' in " << msg;
+    names.insert(f(e));
+  }
+}
 
 class TransExp {
   Venv &venv;
@@ -220,23 +232,9 @@ public:
   TransExp(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
 };
 
-Expty trans_exp(Venv &venv, Tenv &tenv, absyn::ExprAST &e) {
-  return TransExp(venv, tenv).trexp(e);
-}
-
 class DeclVisitor {
   Venv &venv;
   Tenv &tenv;
-
-  template <typename C, typename F>
-  void check_dup(const C &c, F &&f, const char *msg) {
-    std::unordered_set<const char *> names;
-    for (auto &e : c) {
-      CHECK_EQ(names.count(f(e)), 0U)
-          << e.pos << ": Duplicate name '" << f(e) << "' in " << msg;
-      names.insert(f(e));
-    }
-  }
 
 public:
   DeclVisitor(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
@@ -317,10 +315,6 @@ public:
   }
 };
 
-void trans_dec(Venv &venv, Tenv &tenv, absyn::DeclAST &decl) {
-  std::visit(DeclVisitor(venv, tenv), decl);
-}
-
 class TypeVisitor {
   Tenv &tenv;
 
@@ -351,8 +345,17 @@ public:
   }
 };
 
+void trans_dec(Venv &venv, Tenv &tenv, absyn::DeclAST &decl) {
+  std::visit(detail::DeclVisitor(venv, tenv), decl);
+}
 types::Ty trans_ty(Tenv &tenv, absyn::Ty &ty) {
-  return std::visit(TypeVisitor(tenv), ty);
+  return std::visit(detail::TypeVisitor(tenv), ty);
+}
+
+} // namespace detail
+
+Expty trans_exp(Venv &venv, Tenv &tenv, absyn::ExprAST &e) {
+  return detail::TransExp(venv, tenv).trexp(e);
 }
 
 } // namespace semant
