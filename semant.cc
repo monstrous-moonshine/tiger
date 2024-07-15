@@ -90,7 +90,7 @@ class TransExp {
         CHECK(is_int(lhs) || is_str(lhs) || is_record(lhs) || is_array(lhs) ||
               is_nil(lhs))
             << e->pos;
-        CHECK(types::is_compatible(lhs.ty, rhs.ty)) << e->pos;
+        CHECK(types::is_compatible(lhs.ty, rhs.ty) || types::is_compatible(rhs.ty, lhs.ty)) << e->pos;
         break;
       case absyn::Op::kLt:
       case absyn::Op::kGt:
