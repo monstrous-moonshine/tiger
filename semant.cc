@@ -33,15 +33,11 @@ private:
 
 namespace semant {
 
-void check_int(const Expty &et, const Location &loc) {
-  CHECK(types::is<types::IntTy>(et.ty)) << loc;
-}
-void check_record(const Expty &et, const Location &loc) {
-  CHECK(types::is<types::RecordTyRef>(et.ty)) << loc;
-}
-void check_array(const Expty &et, const Location &loc) {
-  CHECK(types::is<types::ArrayTyRef>(et.ty)) << loc;
-}
+bool is_int(const Expty &et) { return types::is<types::IntTy>(et.ty); }
+bool is_str(const Expty &et) { return types::is<types::StringTy>(et.ty); }
+bool is_record(const Expty &et) { return types::is<types::RecordTyRef>(et.ty); }
+bool is_array(const Expty &et) { return types::is<types::ArrayTyRef>(et.ty); }
+bool is_nil(const Expty &et) { return types::is<types::NilTy>(et.ty); }
 
 void trans_dec(Venv &, Tenv &, absyn::DeclAST &);
 types::Ty trans_ty(Tenv &, absyn::Ty &);
@@ -72,13 +68,35 @@ class TransExp {
       return {func.result};
     }
     Expty operator()(uptr<absyn::OpExprAST> &e) {
-      check_int(e_.trexp(e->lhs), e->pos);
-      check_int(e_.trexp(e->rhs), e->pos);
+      auto lhs = e_.trexp(e->lhs);
+      auto rhs = e_.trexp(e->rhs);
+      switch (e->op) {
+      case absyn::Op::kEq:
+      case absyn::Op::kNeq:
+        CHECK(is_int(lhs) || is_str(lhs) || is_record(lhs) || is_array(lhs) ||
+              is_nil(lhs))
+            << e->pos;
+        CHECK(types::is_compatible(lhs.ty, rhs.ty)) << e->pos;
+        break;
+      case absyn::Op::kLt:
+      case absyn::Op::kGt:
+      case absyn::Op::kLe:
+      case absyn::Op::kGe:
+        CHECK(is_int(lhs) || is_str(lhs)) << e->pos;
+        CHECK(types::is_compatible(lhs.ty, rhs.ty)) << e->pos;
+        break;
+      default:
+        CHECK(is_int(lhs)) << e->pos;
+        CHECK(is_int(rhs)) << e->pos;
+      }
       return {types::IntTy()};
     }
     Expty operator()(uptr<absyn::RecordExprAST> &e) {
       auto entry = e_.tenv.look(e->type_id);
-      CHECK(entry && types::is<types::RecordTyRef>(entry.value())) << e->pos;
+      CHECK(entry) << e->pos << ": Undefined symbol '" << e->type_id.name()
+                   << "'";
+      CHECK(types::is<types::RecordTyRef>(entry.value()))
+          << e->pos << ": '" << e->type_id.name() << "' is not a record";
       auto &ty = types::as<types::RecordTyRef>(entry.value());
       CHECK_EQ(e->fields.size(), ty->fields.size()) << e->pos;
       for (int i = 0; i < (int)e->fields.size(); i++) {
