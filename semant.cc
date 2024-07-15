@@ -228,8 +228,19 @@ class DeclVisitor {
   Venv &venv;
   Tenv &tenv;
 
+  template <typename C, typename F>
+  void check_dup(const C &c, F &&f, const char *msg) {
+    std::unordered_set<const char *> names;
+    for (auto &e : c) {
+      CHECK_EQ(names.count(f(e)), 0U)
+          << e.pos << ": Duplicate name '" << f(e) << "' in " << msg;
+      names.insert(f(e));
+    }
+  }
+
 public:
   DeclVisitor(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
+  // XXX: Check that symbols aren't re-declared in the same scope
   void operator()(uptr<absyn::VarDeclAST> &dec) {
     Expty et = trans_exp(venv, tenv, dec->init);
     if (types::is<types::NilTy>(et.ty)) {
@@ -244,15 +255,9 @@ public:
     venv.enter({dec->name, env::VarEntry{et.ty}});
   }
   void operator()(uptr<absyn::TypeDeclAST> &decs) {
-    {
-      std::unordered_set<const char *> names;
-      for (auto &dec : decs->types) {
-        CHECK_EQ(names.count(dec.name.name()), 0U)
-            << dec.pos << ": Duplicate name '" << dec.name.name()
-            << "' in a sequence of mutually recursive types";
-        names.insert(dec.name.name());
-      }
-    }
+    check_dup(
+        decs->types, [](auto &e) { return e.name.name(); },
+        "a sequence of mutually recursive types");
     for (auto &dec : decs->types) {
       auto &[name, type, pos] = dec;
       auto ty = types::make_name(name);
@@ -265,15 +270,9 @@ public:
     }
   }
   void operator()(uptr<absyn::FuncDeclAST> &decs) {
-    {
-      std::unordered_set<const char *> names;
-      for (auto &dec : decs->decls) {
-        CHECK_EQ(names.count(dec.name.name()), 0U)
-            << dec.pos << ": Duplicate name '" << dec.name.name()
-            << "' in a sequence of mutually recursive functions";
-        names.insert(dec.name.name());
-      }
-    }
+    check_dup(
+        decs->decls, [](auto &e) { return e.name.name(); },
+        "a sequence of mutually recursive functions");
     for (auto &dec : decs->decls) {
       types::Ty result_ty = types::UnitTy{};
       if (dec.result) {
@@ -292,8 +291,12 @@ public:
       venv.enter({dec.name, env::FunEntry{formals, result_ty}});
     }
     for (auto &dec : decs->decls) {
+      check_dup(
+          dec.params, [](auto &e) { return e.name.name(); },
+          "function parameter list");
       symbol::Scope scope(venv);
       auto fty = env::as<env::FunEntry>(venv.look(dec.name).value());
+      // XXX: Check that arguments don't have duplicate names
       for (int i = 0; i < (int)dec.params.size(); i++) {
         venv.enter({dec.params[i].name, env::VarEntry{fty.formals[i]}});
       }
