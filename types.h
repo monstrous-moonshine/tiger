@@ -25,13 +25,13 @@ using ArrayTyRef = sptr<ArrayTy>;
 using NameTyRef = sptr<NameTy>;
 using Ty = std::variant<IntTy, StringTy, RecordTyRef, ArrayTyRef, NilTy, UnitTy,
                         NameTyRef>;
-using NamedType = std::pair<symbol::Symbol, Ty>;
+using RTyField = std::pair<symbol::Symbol, Ty>;
 
 struct RecordTy {
   int id;
 
-  std::vector<NamedType> fields;
-  RecordTy(std::vector<NamedType> &&);
+  std::vector<RTyField> fields;
+  RecordTy(std::vector<RTyField> &&);
 };
 
 struct ArrayTy {
@@ -48,7 +48,7 @@ struct NameTy {
   NameTy(symbol::Symbol t, Ty ty) : type_id(t), ty(ty) {}
 };
 
-inline RecordTyRef make_record(std::vector<NamedType> &&fields) {
+inline RecordTyRef make_record(std::vector<RTyField> &&fields) {
   return std::make_shared<RecordTy>(std::move(fields));
 }
 inline ArrayTyRef make_array(Ty ty) { return std::make_shared<ArrayTy>(ty); }

@@ -20,18 +20,21 @@ public:
     return as<ArrayTyRef>(ty1)->id == ty2->id;
   }
   bool operator()(const NameTyRef &ty2) {
-    CHECK(0) << ty2->type_id.name() << ": Unexpected NameTy";
+    LOG_FATAL << ty2->type_id.name() << ": Unexpected NameTy";
     return as<NameTyRef>(ty1)->type_id == ty2->type_id;
   }
   bool operator()(const IntTy &ty2) { return true; }
   bool operator()(const StringTy &ty2) { return true; }
-  bool operator()(const NilTy &ty2) { return true; }
+  // XXX: nil doesn't equal itself, since equality implies compatibility
+  // and two nil expressions aren't compatible. This is because with two
+  // nil expressions the record type can't be inferred.
+  bool operator()(const NilTy &ty2) { return false; }
   bool operator()(const UnitTy &ty2) { return true; }
 };
 
 } // namespace detail
 
-RecordTy::RecordTy(std::vector<NamedType> &&fields)
+RecordTy::RecordTy(std::vector<RTyField> &&fields)
     : id(record_id++), fields(std::move(fields)) {}
 
 ArrayTy::ArrayTy(Ty ty) : id(array_id++), base_type(ty) {}
@@ -45,10 +48,7 @@ bool operator==(const Ty &ty1, const Ty &ty2) {
 bool is_compatible(const Ty &ty1, const Ty &ty2) {
   if (ty1 == ty2)
     return true;
-  if (is<NilTy>(ty1) && is<RecordTyRef>(ty2)) {
-    return true;
-  }
-  return false;
+  return is<NilTy>(ty1) && is<RecordTyRef>(ty2);
 }
 
 Ty actual_ty(const Ty &ty) {
