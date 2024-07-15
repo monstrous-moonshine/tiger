@@ -109,14 +109,16 @@ class TransExp {
       auto entry = e_.tenv.look(e->type_id);
       CHECK(entry) << e->pos << ": Undefined symbol '" << e->type_id.name()
                    << "'";
-      CHECK(types::is<types::RecordTyRef>(entry.value()))
+      auto aty = types::actual_ty(entry.value());
+      CHECK(types::is<types::RecordTyRef>(aty))
           << e->pos << ": '" << e->type_id.name() << "' is not a record";
-      auto &ty = types::as<types::RecordTyRef>(entry.value());
+      auto &ty = types::as<types::RecordTyRef>(aty);
       CHECK_EQ(e->fields.size(), ty->fields.size()) << e->pos;
       for (int i = 0; i < (int)e->fields.size(); i++) {
-        CHECK_EQ(e->fields[i].name, ty->fields[i].first) << e->pos;
+        CHECK_EQ(e->fields[i].name, ty->fields[i].first) << e->fields[i].pos;
         auto et = e_.trexp(e->fields[i].value);
-        CHECK(types::is_compatible(et.ty, ty->fields[i].second)) << e->pos;
+        auto dst_ty = types::actual_ty(ty->fields[i].second);
+        CHECK(types::is_compatible(et.ty, dst_ty)) << e->fields[i].pos;
       }
       return {ty};
     }
