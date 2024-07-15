@@ -55,6 +55,8 @@ TIGER_CHECK_FUNC(_NE, !=)
   ::runtime::detail::LogFatal(__FILE__, __LINE__).stream()                     \
       << "Check failed: (" << #cond << ") is false: "
 
+#define LOG_FATAL ::runtime::detail::LogFatal(__FILE__, __LINE__).stream()
+
 #define CHECK_EQ(x, y) CHECK_BINARY_OP(_EQ, ==, x, y)
 #define CHECK_NE(x, y) CHECK_BINARY_OP(_NE, !=, x, y)
 } // namespace runtime
