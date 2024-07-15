@@ -213,7 +213,7 @@ class TransExp {
       CHECK(is_record(et)) << v->pos;
       auto &r = types::as<types::RecordTyRef>(et.ty);
       auto it = std::find_if(r->fields.begin(), r->fields.end(),
-                             [&v](const types::NamedType &field) {
+                             [&v](const types::RTyField &field) {
                                return field.first == v->field;
                              });
       CHECK(it != r->fields.end()) << v->pos;
@@ -242,6 +242,7 @@ public:
   DeclVisitor(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
   void operator()(uptr<absyn::VarDeclAST> &dec) {
     Expty et = trans_exp(venv, tenv, dec->init);
+    auto res_ty = et.ty;
     if (types::is<types::NilTy>(et.ty)) {
       CHECK(dec->type_id) << dec->pos;
     }
@@ -250,8 +251,9 @@ public:
       CHECK(entry) << dec->type_id->pos;
       auto ty = types::actual_ty(entry.value());
       CHECK(is_compatible(et.ty, ty)) << dec->type_id->pos;
+      res_ty = ty;
     }
-    bool not_redec = venv.enter({dec->name, env::VarEntry{et.ty}});
+    bool not_redec = venv.enter({dec->name, env::VarEntry{res_ty}});
     CHECK(not_redec) << dec->pos << ": Redeclaration of symbol '"
                      << dec->name.name() << "' in same scope";
   }
