@@ -1,4 +1,4 @@
-CXXFLAGS := -Wall -Og -g -MMD
+CXXFLAGS := -Wall -O0 -g -MMD
 OUTPUT_DIR := build
 SRCS := main.cc symbol.cc semant.cc types.cc
 HDRS := absyn.h absyn_common.h env.h location.h logging.h print.h semant.h symbol.h token.h types.h
