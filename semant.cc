@@ -240,7 +240,6 @@ class DeclVisitor {
 
 public:
   DeclVisitor(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
-  // XXX: Check that symbols aren't re-declared in the same scope
   void operator()(uptr<absyn::VarDeclAST> &dec) {
     Expty et = trans_exp(venv, tenv, dec->init);
     if (types::is<types::NilTy>(et.ty)) {
@@ -252,7 +251,9 @@ public:
       auto ty = types::actual_ty(entry.value());
       CHECK(is_compatible(et.ty, ty)) << dec->type_id->pos;
     }
-    venv.enter({dec->name, env::VarEntry{et.ty}});
+    bool not_redec = venv.enter({dec->name, env::VarEntry{et.ty}});
+    CHECK(not_redec) << dec->pos << ": Redeclaration of symbol '"
+                     << dec->name.name() << "' in same scope";
   }
   void operator()(uptr<absyn::TypeDeclAST> &decs) {
     check_dup(
@@ -261,7 +262,9 @@ public:
     for (auto &dec : decs->types) {
       auto &[name, type, pos] = dec;
       auto ty = types::make_name(name);
-      tenv.enter({name, ty});
+      bool not_redec = tenv.enter({name, ty});
+      CHECK(not_redec) << dec.pos << ": Redeclaration of symbol '"
+                       << dec.name.name() << "' in same scope";
     }
     for (auto &dec : decs->types) {
       auto &[name, type, pos] = dec;
@@ -288,7 +291,10 @@ public:
         auto ty = types::actual_ty(tentry.value());
         formals.push_back(ty);
       }
-      venv.enter({dec.name, env::FunEntry{formals, result_ty}});
+      bool not_redec =
+          venv.enter({dec.name, env::FunEntry{formals, result_ty}});
+      CHECK(not_redec) << dec.pos << ": Redeclaration of symbol '"
+                       << dec.name.name() << "' in same scope";
     }
     for (auto &dec : decs->decls) {
       check_dup(
@@ -296,8 +302,9 @@ public:
           "function parameter list");
       symbol::Scope scope(venv);
       auto fty = env::as<env::FunEntry>(venv.look(dec.name).value());
-      // XXX: Check that arguments don't have duplicate names
       for (int i = 0; i < (int)dec.params.size(); i++) {
+        // No need to check for duplicate here, since we just created a scope
+        // and we know all the parameter names are unique, so they won't clash
         venv.enter({dec.params[i].name, env::VarEntry{fty.formals[i]}});
       }
       LoopManager::Get().EnterFun();
