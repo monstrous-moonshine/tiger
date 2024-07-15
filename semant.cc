@@ -58,7 +58,9 @@ class TransExp {
     }
     Expty operator()(uptr<absyn::CallExprAST> &e) {
       auto entry = e_.venv.look(e->func);
-      CHECK(entry && env::is<env::FunEntry>(entry.value())) << e->pos;
+      CHECK(entry) << e->pos << ": Undefined symbol '" << e->func.name() << "'";
+      CHECK(env::is<env::FunEntry>(entry.value()))
+          << e->pos << ": '" << e->func.name() << "' is not a function";
       auto &func = env::as<env::FunEntry>(entry.value());
       CHECK_EQ(e->args.size(), func.formals.size()) << e->pos;
       for (int i = 0; i < (int)e->args.size(); i++) {
@@ -108,10 +110,14 @@ class TransExp {
     }
     Expty operator()(uptr<absyn::ArrayExprAST> &e) {
       auto entry = e_.tenv.look(e->type_id);
-      CHECK(entry && types::is<types::ArrayTyRef>(entry.value())) << e->pos;
+      CHECK(entry) << e->pos << ": Undefined symbol '" << e->type_id.name()
+                   << "'";
+      CHECK(types::is<types::ArrayTyRef>(entry.value()))
+          << e->pos << ": '" << e->type_id.name() << "' is not an array";
       auto &ty = types::as<types::ArrayTyRef>(entry.value());
-      check_int(e_.trexp(e->size), e->pos);
-      CHECK(is_compatible(e_.trexp(e->init).ty, ty->base_type)) << e->pos;
+      CHECK(is_int(e_.trexp(e->size))) << e->pos;
+      CHECK(types::is_compatible(e_.trexp(e->init).ty, ty->base_type))
+          << e->pos;
       return {ty};
     }
     Expty operator()(uptr<absyn::SeqExprAST> &e) {
@@ -127,34 +133,37 @@ class TransExp {
       return {dst_ty};
     }
     Expty operator()(uptr<absyn::IfExprAST> &e) {
-      check_int(e_.trexp(e->cond), e->pos);
+      CHECK(is_int(e_.trexp(e->cond))) << e->pos;
       auto ty1 = e_.trexp(e->then);
+      // We're ignoring the case when the result is a record type and one of
+      // the branches is nil
       if (!e->else_) {
-        CHECK_EQ(ty1.ty, types::UnitTy()) << e->pos;
+        CHECK(ty1.ty == types::UnitTy()) << e->pos;
       } else {
         auto ty2 = e_.trexp(e->else_.value());
-        CHECK_EQ(ty1.ty, ty2.ty) << e->pos;
+        CHECK(ty1.ty == ty2.ty) << e->pos;
       }
       return {ty1};
     }
     Expty operator()(uptr<absyn::WhileExprAST> &e) {
-      check_int(e_.trexp(e->cond), e->pos);
+      CHECK(is_int(e_.trexp(e->cond))) << e->pos;
       // We could skip this check to allow value-producing expressions in the
       // loop body, which we could simply ignore
       LoopManager::Get().EnterLoop(e.get());
-      CHECK_EQ(e_.trexp(e->body).ty, types::UnitTy()) << e->pos;
+      CHECK(e_.trexp(e->body).ty == types::UnitTy()) << e->pos;
       LoopManager::Get().ExitLoop();
       return {types::UnitTy()};
     }
     Expty operator()(uptr<absyn::ForExprAST> &e) {
-      check_int(e_.trexp(e->lo), e->pos);
-      check_int(e_.trexp(e->hi), e->pos);
+      CHECK(is_int(e_.trexp(e->lo))) << e->pos;
+      CHECK(is_int(e_.trexp(e->hi))) << e->pos;
       symbol::Scope scope(e_.tenv);
       e_.tenv.enter({e->var, types::IntTy()});
       // We could skip this check to allow value-producing expressions in the
       // loop body, which we could simply ignore
       LoopManager::Get().EnterLoop(e.get());
-      CHECK_EQ(e_.trexp(e->body).ty, types::UnitTy()) << e->pos;
+      // XXX: Check that e->var isn't assigned to in the body
+      CHECK(e_.trexp(e->body).ty == types::UnitTy()) << e->pos;
       LoopManager::Get().ExitLoop();
       return {types::UnitTy()};
     }
@@ -179,13 +188,15 @@ class TransExp {
     VarVisitor(TransExp &enclosing) : e_(enclosing) {}
     Expty operator()(uptr<absyn::SimpleVarAST> &v) {
       auto entry = e_.venv.look(v->id);
-      CHECK(entry && env::is<env::VarEntry>(entry.value())) << v->pos;
+      CHECK(entry) << v->pos << ": Undefined symbol '" << v->id.name() << "'";
+      CHECK(env::is<env::VarEntry>(entry.value()))
+          << v->pos << ": '" << v->id.name() << "' is not a variable";
       auto &ventry = env::as<env::VarEntry>(entry.value());
       return {types::actual_ty(ventry.ty)};
     }
     Expty operator()(uptr<absyn::FieldVarAST> &v) {
       Expty et = e_.trvar(v->var);
-      check_record(et, v->pos);
+      CHECK(is_record(et)) << v->pos;
       auto &r = types::as<types::RecordTyRef>(et.ty);
       auto it = std::find_if(r->fields.begin(), r->fields.end(),
                              [&v](const types::NamedType &field) {
@@ -196,26 +207,18 @@ class TransExp {
     }
     Expty operator()(uptr<absyn::IndexVarAST> &v) {
       Expty et = e_.trvar(v->var);
-      check_array(et, v->pos);
-      check_int(e_.trexp(v->index), v->pos);
+      CHECK(is_array(et)) << v->pos;
+      CHECK(is_int(e_.trexp(v->index))) << v->pos;
       auto a = types::as<types::ArrayTyRef>(et.ty);
       return {types::actual_ty(a->base_type)};
     }
   };
 
 public:
-  Expty trexp(absyn::ExprAST &);
-  Expty trvar(absyn::VarAST &);
+  Expty trexp(absyn::ExprAST &e) { return std::visit(ExprVisitor(*this), e); }
+  Expty trvar(absyn::VarAST &v) { return std::visit(VarVisitor(*this), v); }
   TransExp(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
 };
-
-Expty TransExp::trvar(absyn::VarAST &v) {
-  return std::visit(TransExp::VarVisitor(*this), v);
-}
-
-Expty TransExp::trexp(absyn::ExprAST &e) {
-  return std::visit(TransExp::ExprVisitor(*this), e);
-}
 
 Expty trans_exp(Venv &venv, Tenv &tenv, absyn::ExprAST &e) {
   return TransExp(venv, tenv).trexp(e);
