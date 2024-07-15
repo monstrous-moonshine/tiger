@@ -57,6 +57,7 @@ ExprAST *expseq_to_expr(ExprSeq *);
 
 %nterm <exp> exp op_exp primary
 %nterm <var> lvalue
+%nterm <var> member
 %nterm <fields> fieldseq fields
 %nterm <field> field
 %nterm <exps> expseq exps argseq args
@@ -83,19 +84,21 @@ exp:	op_exp
 	|
 	FOR ID ASSIGN exp TO exp DO exp	{ $$ = new E(ForExprAST, $2, $4, $6, $8, @1); }
 	|
-	LET decs IN expseq END		{ $$ = new E(LetExprAST, $2, expseq_to_expr($4), @1); }
+	ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $1, $3, @1); }
 	|
-	NEW ID '{' fieldseq '}'		{ $$ = new E(RecordExprAST, $2, $4, @2); }
-	|
-	NEW ID '[' exp ']' OF exp	{ $$ = new E(ArrayExprAST, $2, $4, $7, @2); }
+	ID '[' exp ']' OF exp		{ $$ = new E(ArrayExprAST, $1, $3, $6, @1); }
 	|
 	BREAK				{ $$ = new E(BreakExprAST, @1); }
 	;
 lvalue: ID				{ $$ = new V(SimpleVarAST, $1, @1); }
 	|
-	lvalue '.' ID			{ $$ = new V(FieldVarAST, $1, $3, @2); }
+	member
+	;
+member:	lvalue '.' ID			{ $$ = new V(FieldVarAST, $1, $3, @2); }
 	|
-	lvalue '[' exp ']'		{ $$ = new V(IndexVarAST, $1, $3, @2); }
+	ID '[' exp ']'			{ $$ = new V(IndexVarAST, new V(SimpleVarAST, $1, @1), $3, @2); }
+	|
+	member '[' exp ']'		{ $$ = new V(IndexVarAST, $1, $3, @2); }
 	;
 op_exp: op_exp '&' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd, @2); }
 	|
@@ -127,6 +130,8 @@ op_exp: op_exp '&' op_exp		{ $$ = new E(OpExprAST, $1, $3, Op::kAnd, @2); }
 	;
 primary:
 	ID '(' argseq ')'		{ $$ = new E(CallExprAST, $1, $3, @2); }
+	|
+	LET decs IN expseq END		{ $$ = new E(LetExprAST, $2, expseq_to_expr($4), @1); }
 	|
 	'(' expseq ')'			{ $$ = expseq_to_expr($2); }
 	|
@@ -163,7 +168,7 @@ fields: field				{ $$ = new RExprFieldSeq(); $$->AddField($1); }
 	|
 	fields ',' field		{ $$ = $1; $$->AddField($3); }
 	;
-field:	ID '=' op_exp			{ $$ = new RExprField($1, $3, @1); }
+field:	ID '=' exp			{ $$ = new RExprField($1, $3, @1); }
 	;
 
 /*============================== DECLARATIONS ==============================*/
@@ -198,8 +203,7 @@ tyfieldseq:
 tyfields:
 	tyfield				{ $$ = new RTyFieldSeq(); $$->AddField($1); }
 	|
-	tyfields ',' tyfield		{ $$ = $1; $$->AddField($3);
-	}
+	tyfields ',' tyfield		{ $$ = $1; $$->AddField($3); }
 	;
 tyfield:
 	ID ':' ID			{ $$ = new RTyField($1, $3, @1); }
