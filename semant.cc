@@ -333,11 +333,11 @@ public:
     check_dup(
         ty->fields, [](auto &e) { return e.name.name(); },
         "record declaration");
-    std::vector<types::NamedType> out;
+    std::vector<types::RTyField> out;
     for (auto &field : ty->fields) {
       auto tentry = tenv.look(field.type_id);
       CHECK(tentry) << field.pos;
-      out.emplace_back(field.type_id, tentry.value());
+      out.emplace_back(field.name, tentry.value());
     }
     return types::make_record(std::move(out));
   }
