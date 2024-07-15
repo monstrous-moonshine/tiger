@@ -326,12 +326,11 @@ public:
     return tentry.value();
   }
   types::Ty operator()(uptr<absyn::RecordTy> &ty) {
+    check_dup(
+        ty->fields, [](auto &e) { return e.name.name(); },
+        "record declaration");
     std::vector<types::NamedType> out;
     for (auto &field : ty->fields) {
-      bool is_unique = std::find_if(out.begin(), out.end(), [&field](auto &n) {
-                         return n.first == field.name;
-                       }) == out.end();
-      CHECK(is_unique) << field.pos;
       auto tentry = tenv.look(field.type_id);
       CHECK(tentry) << field.pos;
       out.emplace_back(field.type_id, tentry.value());
