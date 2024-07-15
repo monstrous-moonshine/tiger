@@ -39,7 +39,6 @@ function	return token::FUNC;
 if		return token::IF;
 in		return token::IN;
 let		return token::LET;
-new		return token::NEW;
 nil		return token::NIL;
 of		return token::OF;
 then		return token::THEN;

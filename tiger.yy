@@ -53,7 +53,7 @@ ExprAST *expseq_to_expr(ExprSeq *);
 %left '*' '/'
 %left UMINUS
 
-%token ARRAY BREAK DO ELSE END FOR FUNC IF IN LET NEW OF THEN TO TYPE VAR WHILE
+%token ARRAY BREAK DO ELSE END FOR FUNC IF IN LET OF THEN TO TYPE VAR WHILE
 
 %nterm <exp> exp op_exp primary
 %nterm <var> lvalue
