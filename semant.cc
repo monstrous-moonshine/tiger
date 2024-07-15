@@ -144,7 +144,7 @@ class TransExp {
       auto dst_ty = e_.trvar(e->var).ty;
       auto src_ty = e_.trexp(e->exp).ty;
       CHECK(is_compatible(src_ty, dst_ty)) << e->pos;
-      return {dst_ty};
+      return {types::UnitTy()};
     }
     Expty operator()(uptr<absyn::IfExprAST> &e) {
       CHECK(is_int(e_.trexp(e->cond))) << e->pos;
