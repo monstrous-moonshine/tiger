@@ -48,7 +48,8 @@ bool operator==(const Ty &ty1, const Ty &ty2) {
 bool is_compatible(const Ty &src, const Ty &dst) {
   if (src == dst)
     return true;
-  return is<NilTy>(src) && is<RecordTyRef>(dst);
+  auto aty = actual_ty(dst);
+  return is<NilTy>(src) && is<RecordTyRef>(aty);
 }
 
 Ty actual_ty(const Ty &ty) {
