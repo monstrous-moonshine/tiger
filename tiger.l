@@ -12,7 +12,6 @@ namespace {
   }
 }
 #define YY_DECL int yylex(Token *yylval, Location *yylloc)
-#define YY_NO_UNPUT 1
 #define YY_USER_ACTION *yylloc = {line_, column_}; column_ += yyleng;
 %}
 
@@ -69,6 +68,7 @@ while		return token::WHILE;
 		    fprintf(stderr, "Unterminated comment on line %d\n", line_);
 		    return token::YYerror;
 		}
+		unput(c);
 		}
 .		{
 		fprintf(stderr, "Unexpected character %c on line %d\n", yytext[0], line_);
