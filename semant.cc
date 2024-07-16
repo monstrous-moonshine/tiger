@@ -43,6 +43,7 @@ bool is_str(const Expty &et) { return types::is<types::StringTy>(et.ty); }
 bool is_record(const Expty &et) { return types::is<types::RecordTyRef>(et.ty); }
 bool is_array(const Expty &et) { return types::is<types::ArrayTyRef>(et.ty); }
 bool is_nil(const Expty &et) { return types::is<types::NilTy>(et.ty); }
+bool is_unit(const Expty &et) { return types::is<types::UnitTy>(et.ty); }
 
 template <typename C, typename F>
 void check_dup(const C &c, F &&f, const char *msg) {
@@ -87,17 +88,22 @@ class TransExp {
       switch (e->op) {
       case absyn::Op::kEq:
       case absyn::Op::kNeq:
-        CHECK(is_int(lhs) || is_str(lhs) || is_record(lhs) || is_array(lhs) ||
-              is_nil(lhs))
-            << e->pos;
-        CHECK(types::is_compatible(lhs.ty, rhs.ty) || types::is_compatible(rhs.ty, lhs.ty)) << e->pos;
+        if (is_int(lhs) || is_str(lhs) || is_array(lhs)) {
+          CHECK(lhs.ty == rhs.ty) << e->pos;
+        } else if (is_record(lhs)) {
+          CHECK(is_nil(rhs) || lhs.ty == rhs.ty) << e->pos;
+        } else if (is_nil(lhs)) {
+          CHECK(is_record(rhs)) << e->pos;
+        } else {
+          LOG_FATAL << e->pos << ": Wrong types to op";
+        }
         break;
       case absyn::Op::kLt:
       case absyn::Op::kGt:
       case absyn::Op::kLe:
       case absyn::Op::kGe:
         CHECK(is_int(lhs) || is_str(lhs)) << e->pos;
-        CHECK(types::is_compatible(lhs.ty, rhs.ty)) << e->pos;
+        CHECK(lhs.ty == rhs.ty) << e->pos;
         break;
       default:
         CHECK(is_int(lhs)) << e->pos;
