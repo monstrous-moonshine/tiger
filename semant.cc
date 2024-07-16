@@ -121,10 +121,10 @@ class TransExp {
       auto &ty = types::as<types::RecordTyRef>(aty);
       CHECK_EQ(e->fields.size(), ty->fields.size()) << e->pos;
       for (int i = 0; i < (int)e->fields.size(); i++) {
-        CHECK_EQ(e->fields[i].name, ty->fields[i].first) << e->fields[i].pos;
+        auto &[name, ty_] = ty->fields[i];
+        CHECK_EQ(e->fields[i].name, name) << e->fields[i].pos;
         auto et = e_.trexp(e->fields[i].value);
-        auto dst_ty = types::actual_ty(ty->fields[i].second);
-        CHECK(types::is_compatible(et.ty, dst_ty)) << e->fields[i].pos;
+        CHECK(types::is_compatible(et.ty, ty_)) << e->fields[i].pos;
       }
       return {ty};
     }
@@ -148,23 +148,31 @@ class TransExp {
       return {e_.trexp(e->exps.back().exp)};
     }
     Expty operator()(uptr<absyn::AssignExprAST> &e) {
-      auto dst_ty = e_.trvar(e->var).ty;
-      auto src_ty = e_.trexp(e->exp).ty;
-      CHECK(is_compatible(src_ty, dst_ty)) << e->pos;
+      auto dst_et = e_.trvar(e->var);
+      auto src_et = e_.trexp(e->exp);
+      CHECK(!is_unit(src_et)) << e->pos;
+      CHECK(is_compatible(src_et.ty, dst_et.ty)) << e->pos;
       return {types::UnitTy()};
     }
     Expty operator()(uptr<absyn::IfExprAST> &e) {
       CHECK(is_int(e_.trexp(e->cond))) << e->pos;
-      auto ty1 = e_.trexp(e->then);
-      // We're ignoring the case when the result is a record type and one of
-      // the branches is nil
+      auto et1 = e_.trexp(e->then);
       if (!e->else_) {
-        CHECK(ty1.ty == types::UnitTy()) << e->pos;
+        CHECK(et1.ty == types::UnitTy()) << e->pos;
+        return {types::UnitTy()};
       } else {
-        auto ty2 = e_.trexp(e->else_.value());
-        CHECK(ty1.ty == ty2.ty) << e->pos;
+        auto et2 = e_.trexp(e->else_.value());
+        if (is_nil(et1)) {
+          CHECK(is_record(et2)) << e->pos;
+          return {et2};
+        } else if (is_nil(et2)) {
+          CHECK(is_record(et1)) << e->pos;
+          return {et1};
+        } else {
+          CHECK(et1.ty == et2.ty) << e->pos;
+          return {et1};
+        }
       }
-      return {ty1};
     }
     Expty operator()(uptr<absyn::WhileExprAST> &e) {
       CHECK(is_int(e_.trexp(e->cond))) << e->pos;
@@ -219,12 +227,13 @@ class TransExp {
       Expty et = e_.trvar(v->var);
       CHECK(is_record(et)) << v->pos;
       auto &r = types::as<types::RecordTyRef>(et.ty);
-      auto it = std::find_if(r->fields.begin(), r->fields.end(),
-                             [&v](const types::RTyField &field) {
-                               return field.first == v->field;
-                             });
-      CHECK(it != r->fields.end()) << v->pos;
-      return {types::actual_ty(it->second)};
+      for (auto &[name, ty] : r->fields) {
+        if (name == v->field)
+          return {types::actual_ty(ty)};
+      }
+      LOG_FATAL << v->pos << ": No field '" << v->field.name() << "'";
+      // dummy return
+      return {types::UnitTy()};
     }
     Expty operator()(uptr<absyn::IndexVarAST> &v) {
       Expty et = e_.trvar(v->var);
@@ -247,22 +256,23 @@ class DeclVisitor {
 
 public:
   DeclVisitor(Venv &venv, Tenv &tenv) : venv(venv), tenv(tenv) {}
-  void operator()(uptr<absyn::VarDeclAST> &dec) {
-    Expty et = trans_exp(venv, tenv, dec->init);
+  void operator()(uptr<absyn::VarDeclAST> &var) {
+    Expty et = trans_exp(venv, tenv, var->init);
     auto res_ty = et.ty;
     if (types::is<types::NilTy>(et.ty)) {
-      CHECK(dec->type_id) << dec->pos;
+      CHECK(var->type_id) << var->pos;
     }
-    if (dec->type_id) {
-      auto entry = tenv.look(dec->type_id->sym);
-      CHECK(entry) << dec->type_id->pos;
-      auto ty = types::actual_ty(entry.value());
-      CHECK(is_compatible(et.ty, ty)) << dec->type_id->pos;
-      res_ty = ty;
+    if (var->type_id) {
+      auto entry = tenv.look(var->type_id->sym);
+      CHECK(entry) << var->type_id->pos;
+      CHECK(is_compatible(et.ty, entry.value())) << var->type_id->pos;
+      res_ty = types::actual_ty(entry.value());
+    } else {
+      CHECK(!(res_ty == types::UnitTy())) << var->pos;
     }
-    bool not_redec = venv.enter({dec->name, env::VarEntry{res_ty}});
-    CHECK(not_redec) << dec->pos << ": Redeclaration of symbol '"
-                     << dec->name.name() << "' in same scope";
+    bool not_redec = venv.enter({var->name, env::VarEntry{res_ty}});
+    CHECK(not_redec) << var->pos << ": Redeclaration of symbol '"
+                     << var->name.name() << "' in same scope";
   }
   void operator()(uptr<absyn::TypeDeclAST> &decs) {
     check_dup(
