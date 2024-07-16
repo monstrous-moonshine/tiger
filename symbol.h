@@ -38,7 +38,9 @@ public:
   using value_type = typename MapType::value_type;
   Table() { begin_scope(); }
   bool enter(const value_type &v) { return table_.front().insert(v).second; }
-  bool enter(value_type &&v) { return table_.front().insert(std::move(v)).second; }
+  bool enter(value_type &&v) {
+    return table_.front().insert(std::move(v)).second;
+  }
   std::optional<T> look(Symbol s) {
     for (auto env = table_.begin(); env != table_.end(); env++) {
       auto it = env->find(s);
