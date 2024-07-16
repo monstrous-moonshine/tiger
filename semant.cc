@@ -126,9 +126,10 @@ class TransExp {
       auto entry = e_.tenv.look(e->type_id);
       CHECK(entry) << e->pos << ": Undefined symbol '" << e->type_id.name()
                    << "'";
-      CHECK(types::is<types::ArrayTyRef>(entry.value()))
+      auto aty = types::actual_ty(entry.value());
+      CHECK(types::is<types::ArrayTyRef>(aty))
           << e->pos << ": '" << e->type_id.name() << "' is not an array";
-      auto &ty = types::as<types::ArrayTyRef>(entry.value());
+      auto &ty = types::as<types::ArrayTyRef>(aty);
       CHECK(is_int(e_.trexp(e->size))) << e->pos;
       CHECK(types::is_compatible(e_.trexp(e->init).ty, ty->base_type))
           << e->pos;
