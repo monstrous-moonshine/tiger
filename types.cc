@@ -19,10 +19,8 @@ public:
   bool operator()(const ArrayTyRef &ty2) {
     return as<ArrayTyRef>(ty1)->id == ty2->id;
   }
-  bool operator()(const NameTyRef &ty2) {
-    LOG_FATAL << ty2->type_id.name() << ": Unexpected NameTy";
-    return as<NameTyRef>(ty1)->type_id == ty2->type_id;
-  }
+  // XXX: We've eliminated NameTy before calling this.
+  bool operator()(const NameTyRef &ty2) { return false; }
   bool operator()(const IntTy &ty2) { return true; }
   bool operator()(const StringTy &ty2) { return true; }
   // XXX: nil doesn't equal itself, since equality implies compatibility
@@ -40,15 +38,17 @@ RecordTy::RecordTy(std::vector<RTyField> &&fields)
 ArrayTy::ArrayTy(Ty ty) : id(array_id++), base_type(ty) {}
 
 bool operator==(const Ty &ty1, const Ty &ty2) {
-  if (ty1.index() != ty2.index())
+  auto aty1 = actual_ty(ty1);
+  auto aty2 = actual_ty(ty2);
+  if (aty1.index() != aty2.index())
     return false;
-  return std::visit(detail::EqualityVisitor(ty1), ty2);
+  return std::visit(detail::EqualityVisitor(aty1), aty2);
 }
 
-bool is_compatible(const Ty &ty1, const Ty &ty2) {
-  if (ty1 == ty2)
+bool is_compatible(const Ty &src, const Ty &dst) {
+  if (src == dst)
     return true;
-  return is<NilTy>(ty1) && is<RecordTyRef>(ty2);
+  return is<NilTy>(src) && is<RecordTyRef>(dst);
 }
 
 Ty actual_ty(const Ty &ty) {
